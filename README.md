@@ -44,6 +44,7 @@ The basic estimating features 3 stages:
   subpixel Block-Matching based motion compensation will be applied to recover significant structure loss.
 - Refining (optional) <br />
   Pixel-Matching looped refining will be performed to recover fine and delicate details, disabled at level=2
+it serves as a reference to the later final estimating
 ```python
 Basic (src, level=1, \
        radius=6, h=6.4, pel=4, pel_precise=True, thscd1=10000, thscd2=255, \
