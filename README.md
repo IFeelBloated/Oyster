@@ -38,12 +38,14 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 ## Details
 ### Basic
 The basic estimating features 3 stages:
+
 - Cleansing<br />
   an NLMeans filtering with aggressive parameters will be applied to wipe all the artifacts away
 - Motion Compensation<br />
   subpixel Block-Matching based motion compensation will be applied to recover significant structure loss.
 - Refining (optional) <br />
   Pixel-Matching looped refining will be performed to recover fine and delicate details, disabled at level=2
+
 it serves as a reference to the later final estimating
 ```python
 Basic (src, level=1, \
