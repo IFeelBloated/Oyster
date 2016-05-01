@@ -37,6 +37,11 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 
 ## Details
 ### Basic
+The basic estimating features 3 stages:
+- Cleansing
+  an NLMeans filtering with aggressive parameters will be applied to wipe all the artifacts away
+- Motion Compensation
+  subpixel Block-Matching based motion compensation will be applied to recover significant structure loss.
 ```python
 Basic (src, level=1, \
        radius=6, h=6.4, pel=4, pel_precise=True, thscd1=10000, thscd2=255, \
