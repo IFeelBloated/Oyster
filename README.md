@@ -34,3 +34,5 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 ## Notes
 - DO NOT upsample your video to YUV 4:4:4 or RGB before processing if it's not natively full-sampled, just pass the luminance plane as a gray clip and merge the processed luma with the source chroma, fake 4:4:4 is toxic as the low-res chroma will jeopardize the correctness of weight calculation (especially on Pixel-Matching), and then the quality degradation on luma sets in.
 - You might wanna try waifu2x instead if your video is of CGI-like content, Oyster is times slower than waifu2x and designed specifically for photographic videos.
+
+## Details
