@@ -42,6 +42,8 @@ The basic estimating features 3 stages:
   an NLMeans filtering with aggressive parameters will be applied to wipe all the artifacts away
 - Motion Compensation<br />
   subpixel Block-Matching based motion compensation will be applied to recover significant structure loss.
+- Refining (optional) <br />
+  Pixel-Matching looped refining will be performed to recover fine and delicate details, disabled at level=2
 ```python
 Basic (src, level=1, \
        radius=6, h=6.4, pel=4, pel_precise=True, thscd1=10000, thscd2=255, \
