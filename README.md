@@ -36,3 +36,10 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 - You might wanna try waifu2x instead if your video is of CGI-like content, Oyster is times slower than waifu2x and designed specifically for photographic videos.
 
 ## Details
+### Basic
+```python
+Basic (src, level=1, \
+       radius=6, h=6.4, pel=4, pel_precise=True, thscd1=10000, thscd2=255, \
+       deblock=True, deblock_thr=0.03125, deblock_elast=0.015625, \
+       lowpass=8)
+```
