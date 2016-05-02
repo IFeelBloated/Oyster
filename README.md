@@ -60,4 +60,6 @@ Basic (src, level=1, \
   sub-pixel interpolation, True = NNEDI(Neural Network Edge Directed Interpolation), False = wiener interpolation
 - deblock, deblock_thr, deblock_elast<br />
   - deblock: debloking switch for level1, the macroblock boundaries will be replaced with the blend of level1 and level2 when set True, the parameter does not work at level2
-  - deblock_thr: 
+  - deblock_thr: threshold of the pixel difference between level1 and level2, if the absolute difference > deblock_thr, take the pixel from level2, else take the pixel from level1, ranges from 0.0 to 1.0
+  - deblock_elast: elasticity of deblock_thr, ranges from 0.0 to deblock_thr
+- lowpass
