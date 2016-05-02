@@ -70,11 +70,11 @@ Basic (src, level=1, \
 The final estimating features 4 stages:
 
 - Cleansing<br />
-  wild motion compensated block averaging tries to wipe intense artifacts away while maintaining the significant structures standing still
+  wild motion compensated block averaging trying to wipe intense artifacts away while maintaining significant structures standing still
 - Refining (optional) <br />
   Pixel-Matching looped refining will be performed to recover fine and delicate details, disabled at level=2
 - Further Cleaning<br />
-  less wild BM3D tries to sweep residual subtle artifacts away
+  less wild BM3D trying to sweep residual subtle artifacts away
 - Further Refining<br />
   another round of Pixel-Matching refining to recover delicate details lost in the BM3D filtering
 
@@ -92,3 +92,5 @@ Final (src, ref, level=1, \
   read the MVTools doc, DO NOT set it under 1200, for the record
 - sigma, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step<br />
   read the BM3D doc
+
+## Demos
