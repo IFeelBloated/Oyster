@@ -10,25 +10,18 @@ Each pixel will be restored by the weighted average of its neighbors, weights ge
 It is designed for photographic videos, but works on CGI like cartoons and anime also.
 ## Requirements
 - NNEDI3
-
 - KNLMeansCL
-
 - BM3D
-
 - FMTConv
-
 - MVTools (floating point ver)
 
 ## Function List
 - Basic
-
 - Final
 
 ## Formats
 - Bitdepth: 32bits floating point
-
 - Color Space: Gray, RGB, YUV 4:4:4 (subsampled YUV formats are not supported)
-
 - Scan Type: Progressive
 
 ## Notes
