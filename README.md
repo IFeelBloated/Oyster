@@ -94,3 +94,20 @@ Final (src, ref, level=1, \
   read the BM3D doc
 
 ## Demos
+```python
+import vapoursynth as vs
+import sys
+if "Oyster" in sys.modules: del sys.modules["Oyster"]
+import Oyster
+core = vs.get_core()
+
+clp = #typical yv12 stuff
+clp = core.fmtc.bitdepth(clp,bits=32,fulls=False,fulld=True)
+y = core.std.ShufflePlanes(clp,0,vs.GRAY)
+
+ref = Oyster.Basic(y)
+y = Oyster.Final(y,ref)
+
+clp =  core.std.ShufflePlanes([y,clp], [0,1,2], vs.YUV)
+clp.set_output()
+```
