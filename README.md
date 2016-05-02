@@ -63,5 +63,5 @@ Basic (src, level=1, \
   - deblock: deblocking switch for level1, the macroblock boundaries will be replaced with the blend of level1 and level2 when set True, the parameter does not work at level2
   - deblock_thr: threshold of the pixel difference between level1 and level2, if the absolute difference > deblock_thr, take the pixel from level2, else take the pixel from level1, ranges from 0.0 to 1.0
   - deblock_elast: elasticity of deblock_thr, ranges from 0.0 to deblock_thr
-- lowpass
+- lowpass<br />
   compression artifacts are high frequency artifacts, lowpass is the frequency threshold, frequencies below it will not be filtered, ranges from 1 to 100
