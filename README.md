@@ -49,4 +49,13 @@ Basic (src, level=1, \
 - src<br />
   clip to be processed
 - level<br />
-  could be 1 or 2, default 1. de-noise level, level1 works on typical compression artifacts, level2 works on severe compression artifacts
+  could be 1 or 2, default 1, de-noise level, level1 works on typical compression artifacts, level2 works on severe compression artifacts
+- radius<br />
+  temporal radius, 2*radius+1 frames will be referenced and the current frame will be the middle
+- h<br />
+  filtering strength
+- pel, thscd1, thscd2<br />
+  see the MVTools readme
+- pel_precise<br />
+  sub-pixel interpolation, True = NNEDI(Neural Network Edge Directed Interpolation), False = wiener interpolation
+- deblock, deblock_thr, deblock_elast<br />
