@@ -65,3 +65,24 @@ Basic (src, level=1, \
   - deblock_elast: elasticity of deblock_thr, ranges from 0.0 to deblock_thr
 - lowpass<br />
   compression artifacts are high frequency artifacts, lowpass is the frequency threshold, frequencies below it will not be filtered, ranges from 1 to 100
+
+### Final
+The final estimating features 4 stages:
+
+- Cleansing<br />
+  wild motion compensated block averaging tries to wipe intense artifacts away while maintaining the significant structures standing still
+- Refining (optional) <br />
+  Pixel-Matching looped refining will be performed to recover fine and delicate details, disabled at level=2
+- Further Cleaning<br />
+  less wild BM3D tries to sweep residual subtle artifacts away
+- Further Refining<br />
+  another round of Pixel-Matching refining to recover delicate details lost in the BM3D filtering
+
+a reference clip is required for the final estimating
+```python
+Final (src, ref, level=1, \
+       radius=6, h=6.4, sigma=12.0, pel=4, pel_precise=True, thsad=2000, thscd1=10000, thscd2=255, \
+       block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
+       deblock=True, deblock_thr=0.03125, deblock_elast=0.015625, \
+       lowpass=8):
+```
