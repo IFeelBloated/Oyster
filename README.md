@@ -46,3 +46,7 @@ Basic (src, level=1, \
        deblock=True, deblock_thr=0.03125, deblock_elast=0.015625, \
        lowpass=8)
 ```
+- src<br />
+  clip to be processed
+- level<br />
+  could be 1 or 2, default 1. de-noise level, level1 works on typical compression artifacts, level2 works on severe compression artifacts
