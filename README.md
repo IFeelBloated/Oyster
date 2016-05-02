@@ -111,3 +111,8 @@ y = Oyster.Final(y,ref)
 clp =  core.std.ShufflePlanes([y,clp], [0,1,2], vs.YUV)
 clp.set_output()
 ```
+speed things up (at the cost of quality)
+```python
+ref = Oyster.Basic(clp,pel=2,pel_precise=False)
+clp = Oyster.Final(clp,ref,pel=2,pel_precise=False,block_step=8)
+```
