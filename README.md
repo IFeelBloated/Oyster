@@ -26,6 +26,7 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 
 ## Notes
 - DO NOT upsample your video to YUV 4:4:4 or RGB before processing if it's not natively full-sampled, just pass the luminance plane as a gray clip and merge the processed luma with the source chroma, fake 4:4:4 is toxic as the low-res chroma will jeopardize the correctness of weight calculation (especially on Pixel-Matching), and then the quality degradation on luma sets in.
+- DO NOT crop your video before processing, it will destroy the macroblock boundary detecting.
 - You might wanna try waifu2x instead if your video is of CGI-like content, Oyster is times slower than waifu2x and designed specifically for photographic videos.
 
 ## Details
@@ -55,11 +56,11 @@ Basic (src, level=1, \
 - h<br />
   filtering strength
 - pel, thscd1, thscd2<br />
-  see the MVTools readme
+  read the MVTools doc
 - pel_precise<br />
   sub-pixel interpolation, True = NNEDI(Neural Network Edge Directed Interpolation), False = wiener interpolation
 - deblock, deblock_thr, deblock_elast<br />
-  - deblock: debloking switch for level1, the macroblock boundaries will be replaced with the blend of level1 and level2 when set True, the parameter does not work at level2
+  - deblock: deblocking switch for level1, the macroblock boundaries will be replaced with the blend of level1 and level2 when set True, the parameter does not work at level2
   - deblock_thr: threshold of the pixel difference between level1 and level2, if the absolute difference > deblock_thr, take the pixel from level2, else take the pixel from level1, ranges from 0.0 to 1.0
   - deblock_elast: elasticity of deblock_thr, ranges from 0.0 to deblock_thr
 - lowpass
