@@ -30,6 +30,8 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 - You might wanna try waifu2x instead if your video is of CGI-like content, Oyster is times slower than waifu2x and designed specifically for photographic videos.
 
 ## Details
+### Search
+
 ### Basic
 The basic estimating features 3 stages:
 
@@ -96,8 +98,6 @@ Final (src, ref, level=1, \
 ## Demos
 ```python
 import vapoursynth as vs
-import sys
-if "Oyster" in sys.modules: del sys.modules["Oyster"]
 import Oyster
 core = vs.get_core()
 
