@@ -86,7 +86,7 @@ Basic (src, vec, level=1, \
   - deblock_thr: threshold of the pixel difference between level1 and level2, if the absolute difference > deblock_thr, take the pixel from level2, else take the pixel from level1, ranges from 0.0 to 1.0
   - deblock_elast: elasticity of deblock_thr, ranges from 0.0 to deblock_thr
 - lowpass<br />
-  compression artifacts are high frequency artifacts, lowpass is the frequency threshold, frequencies below it will not be filtered, ranges from 1 to 100
+  compression artifacts are high frequency artifacts, lowpass is the frequency threshold, frequencies below it will not be filtered, ranges from 0 to 100
 
 ### Final
 The final estimating features 4 stages:
