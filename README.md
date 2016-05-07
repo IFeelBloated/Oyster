@@ -121,14 +121,16 @@ clp = #typical yv12 stuff
 clp = core.fmtc.bitdepth(clp,bits=32,fulls=False,fulld=True)
 y = core.std.ShufflePlanes(clp,0,vs.GRAY)
 
-ref = Oyster.Basic(y)
-y = Oyster.Final(y,ref)
+vec = Oyster.Search(y)
+ref = Oyster.Basic(y,vec)
+y = Oyster.Final(y,ref,vec)
 
 clp =  core.std.ShufflePlanes([y,clp], [0,1,2], vs.YUV)
 clp.set_output()
 ```
 speed things up (at the cost of quality)
 ```python
-ref = Oyster.Basic(clp,pel=2,pel_precise=False)
-clp = Oyster.Final(clp,ref,pel=2,pel_precise=False,block_step=8)
+vec = Oyster.Search(clp,pel=2,pel_precise=False)
+ref = Oyster.Basic(clp,vec,pel=2,pel_precise=False,block_step=8)
+clp = Oyster.Final(clp,ref,vec,pel=2,pel_precise=False,block_step=8)
 ```
