@@ -16,6 +16,7 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 - MVTools (floating point ver)
 
 ## Function List
+- Search
 - Basic
 - Final
 
