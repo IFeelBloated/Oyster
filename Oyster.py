@@ -4,7 +4,7 @@ import mvmulti
 ### Global Settings ###
 fmtc_args                 = dict (fulls=True, fulld=True)
 msuper_args               = dict (hpad=32, vpad=32, sharp=2, levels=0)
-manalyze_args             = dict (search=3, truemotion=False, trymany=True, levels=0, badrange=-24)
+manalyze_args             = dict (search=3, truemotion=False, trymany=True, levels=0, badrange=-24, overlap=2, blksize=4, divide=0, dct=0)
 nnedi_args                = dict (field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
 
 ### Helpers ###
@@ -109,7 +109,7 @@ def Search (src, radius=6, pel=4, pel_precise=True):
     if _colorspace == vs.GRAY:
        _color             = False
     supsrh                = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=4, pel=pel, chroma=_color, **msuper_args)
-    vmulti                = MAnalyze (supsrh, overlap=2, blksize=4, divide=0, tr=radius, dct=0, chroma=_color, **manalyze_args)
+    vmulti                = MAnalyze (supsrh, tr=radius, chroma=_color, **manalyze_args)
     return vmulti
 
 ### Basic Estimation ###
@@ -245,4 +245,3 @@ def Final (src, ref, vec, level=1, \
     clip                  = _nlm_loop (None, bm3d, temporal_bm, 4)
     clip                  = OPP2RGB (clip, 1) if _rgb else clip
     return clip
-    
