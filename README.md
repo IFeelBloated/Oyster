@@ -35,7 +35,7 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 ### Search
 It returns a motion vector clip the following estimations require.
 ```python
-Search (src, radius=6, pel=4, pel_precise=True, satd=True)
+Search (src, radius=6, pel=4, pel_precise=True)
 ```
 - src<br />
   clip to be processed
@@ -45,9 +45,6 @@ Search (src, radius=6, pel=4, pel_precise=True, satd=True)
   read the MVTools doc
 - pel_precise<br />
   sub-pixel interpolation, True = NNEDI(Neural Network Edge Directed Interpolation), False = wiener interpolation
-- satd<br />
-  pick SATD (Sum of Absolute Transformed Differences) over SAD (Sum of Absolute Differences) on motion estimation when set True, 
-  generally, SATD works better on typical compression artifacts and SAD works better on catastrophic compression artifacts
 
 ### Basic
 The basic estimating features 5 stages:
