@@ -251,3 +251,4 @@ def Final (src, ref, vec, level=1, \
     clip                  = _nlm_loop (None, bm3d, temporal_bm, 4)
     clip                  = OPP2RGB (clip, 1) if _rgb else clip
     return clip
+    
