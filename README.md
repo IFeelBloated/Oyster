@@ -35,7 +35,7 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 ### Search
 It returns a motion vector clip the following estimations require.
 ```python
-Search (src, radius=6, pel=4, pel_precise=True)
+Search (src, radius=6, pel=4, pel_precise=True, thsad=200.0)
 ```
 - src<br />
   clip to be processed
@@ -45,6 +45,8 @@ Search (src, radius=6, pel=4, pel_precise=True)
   read the MVTools doc
 - pel_precise<br />
   sub-pixel interpolation, True = NNEDI(Neural Network Edge Directed Interpolation), False = wiener interpolation
+- thsad<br />
+  read the MVTools doc(MRecalculate section)
 
 ### Basic
 The basic estimating features 5 stages:
