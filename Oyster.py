@@ -4,7 +4,8 @@ import mvmulti
 ### Global Settings ###
 fmtc_args                 = dict (fulls=True, fulld=True)
 msuper_args               = dict (hpad=32, vpad=32, sharp=2, levels=0)
-manalyze_args             = dict (search=3, truemotion=False, trymany=True, levels=0, badrange=-24, overlap=2, blksize=4, divide=0, dct=0)
+manalyze_args             = dict (search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
+mrecalculate_args         = dict (truemotion=False, search=3, smooth=1, divide=0, dct=0)
 nnedi_args                = dict (field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
 
 ### Helpers ###
@@ -93,11 +94,12 @@ class helpers:
           return clip
 
 ### Motion Estimation ###
-def Search (src, radius=6, pel=4, pel_precise=True):
+def Search (src, radius=6, pel=4, pel_precise=True, thsad=200.0):
     core                  = vs.get_core ()
     RGB2OPP               = core.bm3d.RGB2OPP
     MSuper                = core.mvsf.Super
     MAnalyze              = mvmulti.Analyze
+    MRecalculate          = mvmulti.Recalculate
     _color                = True
     _colorspace           = src.format.color_family
     if src.format.bits_per_sample < 32:
@@ -108,8 +110,12 @@ def Search (src, radius=6, pel=4, pel_precise=True):
        src                = RGB2OPP (src, 1)
     if _colorspace == vs.GRAY:
        _color             = False
-    supsrh                = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=4, pel=pel, chroma=_color, **msuper_args)
-    vmulti                = MAnalyze (supsrh, tr=radius, chroma=_color, **manalyze_args)
+    supersoft             = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=4, pel=pel, chroma=_color, **msuper_args)
+    supersharp            = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=2, pel=pel, chroma=_color, **msuper_args)
+    vmulti                = MAnalyze (supersoft, tr=radius, chroma=_color, overlap=16, blksize=32, **manalyze_args)
+    vmulti                = MRecalculate (supersoft, vmulti, tr=radius, chroma=_color, overlap=8, blksize=16, thsad=thsad, **mrecalculate_args)
+    vmulti                = MRecalculate (supersharp, vmulti, tr=radius, chroma=_color, overlap=4, blksize=8, thsad=thsad, **mrecalculate_args)
+    vmulti                = MRecalculate (supersharp, vmulti, tr=radius, chroma=_color, overlap=2, blksize=4, thsad=thsad, **mrecalculate_args)
     return vmulti
 
 ### Basic Estimation ###
