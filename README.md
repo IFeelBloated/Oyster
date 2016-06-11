@@ -17,7 +17,6 @@ It is designed for photographic videos, but works on CGI like cartoons and anime
 
 ## Function List
 - Search
-- Basic
 - Final
 
 ## Formats
