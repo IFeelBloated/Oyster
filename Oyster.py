@@ -1,14 +1,13 @@
 import vapoursynth as vs
+import math
 import mvmulti
 
-### Global Settings ###
 fmtc_args                 = dict (fulls=True, fulld=True)
 msuper_args               = dict (hpad=32, vpad=32, sharp=2, levels=0)
 manalyze_args             = dict (search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
 mrecalculate_args         = dict (truemotion=False, search=3, smooth=1, divide=0, dct=0)
 nnedi_args                = dict (field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
 
-### Helpers ###
 class helpers:
       def freq_merge (low, hi, p=8):
           core            = vs.get_core ()
@@ -28,6 +27,15 @@ class helpers:
           w               = src.width
           h               = src.height
           clip            = Resample (src, w+left+right, h+top+bottom, -left, -top, w+left+right, h+top+bottom, kernel="point", **fmtc_args)
+          return clip
+      def NLMeans (src, a, h, rclip, color):
+          core            = vs.get_core ()
+          Crop            = core.std.CropRel
+          KNLMeansCL      = core.knlm.KNLMeansCL
+          pad             = helpers.padding (src, a+1, a+1, a+1, a+1)
+          rclip           = helpers.padding (rclip, a+1, a+1, a+1, a+1) if rclip is not None else None
+          nlm             = KNLMeansCL (pad, d=0, a=a, s=1, h=h, cmode=color, wref=1.0, rclip=rclip)
+          clip            = Crop (nlm, a+1, a+1, a+1, a+1)
           return clip
       def thr_merge (flt, src, ref=None, thr=0.0009765625, elast=None):
           core            = vs.get_core ()
@@ -68,120 +76,180 @@ class helpers:
           clip            = StackVertical ([clip, clip, clip, clip, clip, clip])
           clip            = StackHorizontal ([clip, clip, clip, clip, clip, clip])
           clip            = StackVertical ([clip, clip, clip, clip, clip])
+          clip            = StackHorizontal ([clip, clip, clip, clip, clip, clip])
+          clip            = StackVertical ([clip, clip, clip, clip, clip])
           clip            = CropAbs (clip, src.width, src.height, 0, 0)
           return clip
-      def NLMeans (src, a, h, wref, rclip, color):
-          core            = vs.get_core ()
-          Crop            = core.std.CropRel
-          KNLMeansCL      = core.knlm.KNLMeansCL
-          pad             = helpers.padding (src, a+1, a+1, a+1, a+1)
-          rclip           = helpers.padding (rclip, a+1, a+1, a+1, a+1) if rclip is not None else None
-          nlm             = KNLMeansCL (pad, d=0, a=a, s=1, h=h, cmode=color, wref=wref, rclip=rclip)
-          clip            = Crop (nlm, a+1, a+1, a+1, a+1)
-          return clip
-      def genpelclip (src, src2=None, pel=4):
-          core            = vs.get_core ()
-          NNEDI           = core.nnedi3.nnedi3
-          Transpose       = core.std.Transpose
-          MakeDiff        = core.std.MakeDiff
-          MergeDiff       = core.std.MergeDiff
-          u2x             = Transpose (NNEDI (Transpose (NNEDI (src, **nnedi_args)), **nnedi_args))
-          u2x2            = 0 if src2 is None else Transpose (NNEDI (Transpose (NNEDI (src2, **nnedi_args)), **nnedi_args))
-          u4x             = Transpose (NNEDI (Transpose (NNEDI (u2x, **nnedi_args)), **nnedi_args))
-          u4x2            = 0 if src2 is None else Transpose (NNEDI (Transpose (NNEDI (u2x2, **nnedi_args)), **nnedi_args))
-          dif             = 0 if src2 is None else (MakeDiff (u2x, u2x2) if pel == 2 else MakeDiff (u4x, u4x2))
-          clip            = (u2x if pel == 2 else u4x) if src2 is None else dif
-          return clip
 
-### Motion Estimation ###
-def Search (src, radius=6, pel=4, pel_precise=True, thsad=200.0):
+def Super (src, pel=4):
+    core            = vs.get_core ()
+    NNEDI           = core.nnedi3.nnedi3
+    Transpose       = core.std.Transpose
+    if src.format.bits_per_sample < 32:
+       raise TypeError ("Oyster.Super: 32bits floating point precision input required!")
+    if src.format.subsampling_w > 0 or src.format.subsampling_h > 0:
+       raise TypeError ("Oyster.Super: subsampled stuff not supported!")
+    u2x             = Transpose (NNEDI (Transpose (NNEDI (src, **nnedi_args)), **nnedi_args))
+    u4x             = Transpose (NNEDI (Transpose (NNEDI (u2x, **nnedi_args)), **nnedi_args))
+    clip            = u2x if pel == 2 else u4x
+    return clip
+
+def Basic (src, super=None, radius=6, pel=4, sad_me=200.0, sad_mc=2000.0, scd1=10000.0, scd2=255.0):
     core                  = vs.get_core ()
     RGB2OPP               = core.bm3d.RGB2OPP
+    OPP2RGB               = core.bm3d.OPP2RGB
     MSuper                = core.mvsf.Super
     MAnalyze              = mvmulti.Analyze
     MRecalculate          = mvmulti.Recalculate
+    MDegrainN             = mvmulti.DegrainN
+    _mdg_plane            = 4
     _color                = True
+    _rgb                  = False
     _colorspace           = src.format.color_family
     if src.format.bits_per_sample < 32:
-       raise TypeError ("Oyster.Search: 32bits floating point precision input required!")
+       raise TypeError ("Oyster.Basic: 32bits floating point precision input required!")
     if src.format.subsampling_w > 0 or src.format.subsampling_h > 0:
-       raise TypeError ("Oyster.Search: subsampled stuff not supported!")
+       raise TypeError ("Oyster.Basic: subsampled stuff not supported!")
     if _colorspace == vs.RGB:
        src                = RGB2OPP (src, 1)
+       super              = RGB2OPP (super, 1) if super is not None else None
+       _rgb               = True
     if _colorspace == vs.GRAY:
        _color             = False
-    supersoft             = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=4, pel=pel, chroma=_color, **msuper_args)
-    supersharp            = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=2, pel=pel, chroma=_color, **msuper_args)
+       _mdg_plane         = 0
+    supersoft             = MSuper (src, pelclip=super, rfilter=4, pel=pel, chroma=_color, **msuper_args)
+    supersharp            = MSuper (src, pelclip=super, rfilter=2, pel=pel, chroma=_color, **msuper_args)
     vmulti                = MAnalyze (supersoft, tr=radius, chroma=_color, overlap=16, blksize=32, **manalyze_args)
-    vmulti                = MRecalculate (supersoft, vmulti, tr=radius, chroma=_color, overlap=8, blksize=16, thsad=thsad, **mrecalculate_args)
-    vmulti                = MRecalculate (supersharp, vmulti, tr=radius, chroma=_color, overlap=4, blksize=8, thsad=thsad, **mrecalculate_args)
-    vmulti                = MRecalculate (supersharp, vmulti, tr=radius, chroma=_color, overlap=2, blksize=4, thsad=thsad, **mrecalculate_args)
-    return vmulti
+    vmulti                = MRecalculate (supersoft, vmulti, tr=radius, chroma=_color, overlap=8, blksize=16, thsad=sad_me, **mrecalculate_args)
+    vmulti                = MRecalculate (supersharp, vmulti, tr=radius, chroma=_color, overlap=4, blksize=8, thsad=sad_me, **mrecalculate_args)
+    vmulti                = MRecalculate (supersharp, vmulti, tr=radius, chroma=_color, overlap=2, blksize=4, thsad=sad_me, **mrecalculate_args)
+    clip                  = MDegrainN (src, supersharp, vmulti, tr=radius, thsad=sad_mc, thscd1=scd1, thscd2=scd2, plane=_mdg_plane)
+    clip                  = OPP2RGB (clip, 1) if _rgb else clip
+    return clip
 
-### Final Estimation ###
-def Final (src, vec, level=1, \
-           radius=6, h=6.4, sigma=16.0, pel=4, pel_precise=True, thsad=2000, thscd1=10000, thscd2=255, \
-           block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
-           deblock=True, deblock_thr=0.03125, deblock_elast=0.015625, \
-           lowpass=8):
+def Deringing (src, ref, radius=6, h=6.4, sigma=16.0, \
+               mse=None, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
+               lowpass=8):
     core                  = vs.get_core ()
     BM3D                  = core.bm3d.VFinal
     Aggregate             = core.bm3d.VAggregate
     RGB2OPP               = core.bm3d.RGB2OPP
     OPP2RGB               = core.bm3d.OPP2RGB
-    Expr                  = core.std.Expr
     MakeDiff              = core.std.MakeDiff
     MergeDiff             = core.std.MergeDiff
-    MaskedMerge           = core.std.MaskedMerge
-    ShufflePlanes         = core.std.ShufflePlanes
-    MSuper                = core.mvsf.Super
-    MDegrainN             = mvmulti.DegrainN
+    c1                    = 1.1396386205122096184557327136584
+    c2                    = 4.8995241035176996103733445761166
+    _hfine                = ((math.exp (c1 * h) - 1.0) / (math.pow (h, h) / math.gamma (h + 1.0))) / c2
     _rgb                  = False
     _color                = True
-    _mdg_plane            = 4
-    _hfine                = pow (1.1988568728336214663622280225868, h)
-    _mse                  = sigma * 120 + thsad / 1.7097673100105595991973500117303
+    _mse                  = sigma * 160.0 + 1200.0 if mse is None else mse
     _matrix               = None
     _colorspace           = src.format.color_family
     if src.format.bits_per_sample < 32:
-       raise TypeError ("Oyster.Final: 32bits floating point precision input required!")
+       raise TypeError ("Oyster.Deringing: 32bits floating point precision input required!")
     if src.format.subsampling_w > 0 or src.format.subsampling_h > 0:
-       raise TypeError ("Oyster.Final: subsampled stuff not supported!")
+       raise TypeError ("Oyster.Deringing: subsampled stuff not supported!")
     if _colorspace == vs.RGB:
        _rgb               = True
        _matrix            = 100
        src                = RGB2OPP (src, 1)
+       ref                = RGB2OPP (ref, 1)
     if _colorspace == vs.GRAY:
        _color             = False
-       _mdg_plane         = 0
     def _nlm_loop (flt, init, src, n):
-        c1                = 1.0707892518365290738330599429051
-        c2                = 0.4798695862246764421520306169363
         str               = n * h / 4 + _hfine * (1 - n / 4)
-        weight            = pow (c1, str * (4 - n)) - c2
         window            = 32 // pow (2, n)
         flt               = init if n == 4 else flt
         dif               = MakeDiff (src, flt)
-        dif               = helpers.NLMeans (dif, window, str, weight, flt, _color)
+        dif               = helpers.NLMeans (dif, window, str, flt, _color)
         fnl               = MergeDiff (flt, dif)
         n                 = n - 1
         return fnl if n == -1 else _nlm_loop (fnl, init, src, n)
-    suprdr                = MSuper (src, pelclip=helpers.genpelclip (src, pel=pel) if pel_precise else None, rfilter=2, pel=pel, chroma=_color, **msuper_args)
-    temporal_bm           = MDegrainN (src, suprdr, vec, tr=radius, thsad=thsad, thscd1=thscd1, thscd2=thscd2, plane=_mdg_plane)
-    temporal_bm           = helpers.freq_merge (src, temporal_bm, lowpass) if lowpass != 0 else temporal_bm
-    ref                   = temporal_bm
-    if level == 1:
-       tmp_fine           = _nlm_loop (None, temporal_bm, src, 4)
-       if deblock == True:
-          _coarse         = helpers.thr_merge (tmp_fine, temporal_bm, thr=deblock_thr, elast=deblock_elast)
-          _mask           = helpers.genblockmask (ShufflePlanes (src, 0, vs.GRAY))
-          tmp_fine        = MaskedMerge (tmp_fine, _coarse, _mask, first_plane=True)
-       temporal_bm        = tmp_fine
-    bm3d                  = BM3D (temporal_bm, ref, radius=radius, th_mse=_mse, sigma=sigma, \
+    ref                   = helpers.freq_merge (src, ref, lowpass) if lowpass != 0 else ref
+    ref                   = _nlm_loop (None, ref, src, 4)
+    bm3d                  = BM3D (ref, ref, radius=radius, th_mse=_mse, sigma=sigma, \
                                   block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
                                   ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=_matrix)
     bm3d                  = Aggregate (bm3d, radius, 1)
-    clip                  = _nlm_loop (None, bm3d, temporal_bm, 4)
+    bm3d                  = helpers.freq_merge (src, bm3d, lowpass) if lowpass != 0 else bm3d
+    clip                  = _nlm_loop (None, bm3d, ref, 4)
+    clip                  = OPP2RGB (clip, 1) if _rgb else clip
+    return clip
+
+def Destaircase (src, ref, radius=6, sigma=16.0, \
+                 mse=None, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
+                 thr=0.03125, elast=0.015625, lowpass=8):
+    core                  = vs.get_core ()
+    BM3D                  = core.bm3d.VFinal
+    Aggregate             = core.bm3d.VAggregate
+    RGB2OPP               = core.bm3d.RGB2OPP
+    OPP2RGB               = core.bm3d.OPP2RGB
+    MakeDiff              = core.std.MakeDiff
+    MergeDiff             = core.std.MergeDiff
+    MaskedMerge           = core.std.MaskedMerge
+    ShufflePlanes         = core.std.ShufflePlanes
+    _rgb                  = False
+    _color                = True
+    _mse                  = sigma * 160.0 + 1200.0 if mse is None else mse
+    _matrix               = None
+    _colorspace           = src.format.color_family
+    if src.format.bits_per_sample < 32:
+       raise TypeError ("Oyster.Destaircase: 32bits floating point precision input required!")
+    if src.format.subsampling_w > 0 or src.format.subsampling_h > 0:
+       raise TypeError ("Oyster.Destaircase: subsampled stuff not supported!")
+    if _colorspace == vs.RGB:
+       _rgb               = True
+       _matrix            = 100
+       src                = RGB2OPP (src, 1)
+       ref                = RGB2OPP (ref, 1)
+    if _colorspace == vs.GRAY:
+       _color             = False
+    mask                  = helpers.genblockmask (ShufflePlanes (src, 0, vs.GRAY))
+    ref                   = helpers.freq_merge (src, ref, lowpass) if lowpass != 0 else ref
+    ref                   = helpers.thr_merge (src, ref, thr=thr, elast=elast)
+    dif                   = MakeDiff (src, ref)
+    dif                   = BM3D (dif, ref, radius=radius, th_mse=_mse, sigma=sigma, \
+                                  block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                  ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=_matrix)
+    dif                   = Aggregate (dif, radius, 1)
+    ref                   = MergeDiff (ref, dif)
+    clip                  = MaskedMerge (src, ref, mask, first_plane=True)
+    clip                  = OPP2RGB (clip, 1) if _rgb else clip
+    return clip
+
+def Deblocking (src, ref, radius=6, sigma=24.0, \
+                mse=None, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
+                lowpass=8):
+    core                  = vs.get_core ()
+    BM3D                  = core.bm3d.VFinal
+    Aggregate             = core.bm3d.VAggregate
+    RGB2OPP               = core.bm3d.RGB2OPP
+    OPP2RGB               = core.bm3d.OPP2RGB
+    MaskedMerge           = core.std.MaskedMerge
+    ShufflePlanes         = core.std.ShufflePlanes
+    _rgb                  = False
+    _color                = True
+    _mse                  = sigma * 160.0 + 1200.0 if mse is None else mse
+    _matrix               = None
+    _colorspace           = src.format.color_family
+    if src.format.bits_per_sample < 32:
+       raise TypeError ("Oyster.Deblocking: 32bits floating point precision input required!")
+    if src.format.subsampling_w > 0 or src.format.subsampling_h > 0:
+       raise TypeError ("Oyster.Deblocking: subsampled stuff not supported!")
+    if _colorspace == vs.RGB:
+       _rgb               = True
+       _matrix            = 100
+       src                = RGB2OPP (src, 1)
+       ref                = RGB2OPP (ref, 1)
+    if _colorspace == vs.GRAY:
+       _color             = False
+    mask                  = helpers.genblockmask (ShufflePlanes (src, 0, vs.GRAY))
+    ref                   = BM3D (ref, ref, radius=radius, th_mse=_mse, sigma=sigma, \
+                                  block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                  ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=_matrix)
+    ref                   = Aggregate (ref, radius, 1)
+    src                   = helpers.freq_merge (ref, src, lowpass) if lowpass != 0 else src
+    clip                  = MaskedMerge (src, ref, mask, first_plane=True)
     clip                  = OPP2RGB (clip, 1) if _rgb else clip
     return clip
     
