@@ -10,6 +10,7 @@ according to [Wikipedia](https://en.wikipedia.org/wiki/Compression_artifact#Imag
 - Posterizing
 - Staircase noise
 - Blockiness
+
 ## Requirements
 - NNEDI3
 - KNLMeansCL
