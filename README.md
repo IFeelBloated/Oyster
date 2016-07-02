@@ -14,12 +14,12 @@ according to [Wikipedia](https://en.wikipedia.org/wiki/Compression_artifact#Imag
 and oyster handles 3 of them, ringing, staircase noise and blockiness
 
 ## Requirements
-- NNEDI3
-- KNLMeansCL
-- BM3D
-- DFTTest
-- FMTConv
-- MVTools (floating point ver)
+- [NNEDI3](https://github.com/dubhater/vapoursynth-nnedi3)
+- [KNLMeansCL](https://github.com/Khanattila/KNLMeansCL)
+- [BM3D](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-BM3D)
+- [DFTTest](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-DFTTest)
+- [FMTConv](https://github.com/EleonoreMizo/fmtconv)
+- [MVTools (floating point ver)](https://github.com/IFeelBloated/vapoursynth-mvtools-sf/tree/master)
 
 ## Function List
 - Super
