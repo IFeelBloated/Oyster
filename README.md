@@ -9,7 +9,8 @@ according to [Wikipedia](https://en.wikipedia.org/wiki/Compression_artifact#Imag
 - Contouring
 - Posterizing
 - Staircase noise
-- Blockiness<br />
+- Blockiness
+
 and oyster handles 3 of them, ringing, staircase noise and blockiness
 
 ## Requirements
