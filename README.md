@@ -86,3 +86,21 @@ Deringing (src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2
   refer to BM3D doc for more details and, mse[0] is the mse value for VBasic, mse[1] for VFinal, default mse[0] = sigma * 160.0 + 1200.0, mse[1] = sigma * 120.0 + 800.0
 - lowpass<br />
   controls how lowpass filter works, refer to DFTTest doc for more details, default = "0.0:sigma 0.48:1024.0 1.0:1024.0"
+
+### Destaircase
+block based quantization sometimes zeros out high frequency coefficients and leaves the low frequency part (almost or completely) unprocessed, which yields staircase noise, a kind of artifacts that resembles blocking, and sometimes may considered as blocking, it shows as discontinuities (aliasing) along curving edges, and Destaircase kills it
+
+workflow:
+- low frequencies of the basic estimation will be replaced with those from the source clip like Deringing
+- a threshold based limiter eliminates all small differences, discontinuities are large differences apparently
+- coarse BM3D refining (VBasic)
+- more delicate BM3D refining (VFinal)
+- replace macroblock boundaries in source clip with the filtered result
+
+```python
+Destaircase (src, ref, radius=6, sigma=16.0, mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, thr=0.03125, elast=0.015625, lowpass=None)
+```
+- thr<br />
+  threshold of the limiter, ranges from 0.0 (no limit) to 1.0 (no filtering), differences between basic estimation and source clip < thr will be discarded, otherwise remain unaffected.
+- elast<br />
+  elasticity of the threshold, ranges from 0.0 to thr.
