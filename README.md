@@ -83,6 +83,6 @@ Deringing (src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2
 - h<br />
   filtering strength of NLMeans refining, greater value = more relaxed refining (less possible to have residual artifacts but more detail loss)
 - sigma, mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step<br />
-  refer to BM3D doc for details and, mse[0] is the mse value for VBasic, mse[1] for VFinal, default mse[0] = sigma * 160.0 + 1200.0, mse[1] = sigma * 120.0 + 800.0
+  refer to BM3D doc for more details and, mse[0] is the mse value for VBasic, mse[1] for VFinal, default mse[0] = sigma * 160.0 + 1200.0, mse[1] = sigma * 120.0 + 800.0
 - lowpass<br />
-  controls how lowpass filter works, refer to DFTTest doc for details, default = "0.0:sigma 0.48:1024.0 1.0:1024.0"
+  controls how lowpass filter works, refer to DFTTest doc for more details, default = "0.0:sigma 0.48:1024.0 1.0:1024.0"
