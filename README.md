@@ -10,6 +10,7 @@ according to [Wikipedia](https://en.wikipedia.org/wiki/Compression_artifact#Imag
 - Posterizing
 - Staircase noise
 - Blockiness
+and oyster handles 3 of them, ringing, staircase noise and blockiness
 
 ## Requirements
 - NNEDI3
@@ -27,14 +28,13 @@ according to [Wikipedia](https://en.wikipedia.org/wiki/Compression_artifact#Imag
 - Deblocking
 
 ## Formats
-- Bitdepth: 32bits floating point
+- Bit Depth: 32bits floating point
 - Color Space: Gray, RGB, YUV 4:4:4 (subsampled YUV formats are not supported)
 - Scan Type: Progressive
 
 ## Notes
-- DO NOT upsample your video to YUV 4:4:4 or RGB before processing if it's not natively full-sampled, just pass the luminance plane as a gray clip and merge the processed luma with the source chroma, fake 4:4:4 is toxic as the low-res chroma will jeopardize the correctness of weight calculation (especially on Pixel-Matching), and then the quality degradation on luma sets in.
-- DO NOT crop your video before processing, it will destroy the macroblock boundary detecting.
-- You might wanna try waifu2x instead if your video is of CGI-like content, Oyster is times slower than waifu2x and designed specifically for photographic videos.
+- **DO NOT** upsample your video to YUV 4:4:4 or RGB before processing if it's not natively full-sampled, just pass Y as a gray clip and merge the result with UV from the source clip, low-res chroma will jeopardize the correctness of weight calculation (fatal, especially to NLMeans).
+- **DO NOT** crop your video before processing, it will destroy the macroblock boundary detecting.
 
 ## Details
 ### Super
