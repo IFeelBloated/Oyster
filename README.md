@@ -127,3 +127,11 @@ clp = Oyster.Destaircase (clp, ref, block_step=2)
 ```
 ![](http://i.imgur.com/7JZUJej.png)
 ![](http://i.imgur.com/EemwCmC.png)
+- Deringing<br />
+```python
+ref = Oyster.Basic (clp, Oyster.Super (clp))
+clp = Oyster.Destaircase (clp, ref, block_step=2)
+clp = Oyster.Deringing (clp, ref, block_step=2)
+```
+![](http://i.imgur.com/Nn6LymV.png)
+![](http://i.imgur.com/fLomtIs.png)
