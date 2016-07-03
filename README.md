@@ -104,3 +104,17 @@ Destaircase (src, ref, radius=6, sigma=16.0, mse=[None, None], hard_thr=3.2, blo
   threshold of the limiter, ranges from 0.0 (no limit) to 1.0 (no filtering), differences between basic estimation and source clip < thr will be discarded, otherwise remain unaffected.
 - elast<br />
   elasticity of the threshold, ranges from 0.0 to thr.
+
+### Deblocking
+generally, Destaircase + Deringing combo is enough to typical blocking artifacts, this one works in extreme cases with severe blocking artifacts, you can actually tell this filter is fairly destructive from the previous "extreme cases" statement, **DON'T** use it if you don't have to, and use it with caution
+
+workflow:
+- Make a 100% free-of-artifacts copy of the input by appending an NLMeans filtering to the basic estimation, regardless of detail loss
+- coarse BM3D refining (VBasic)
+- more delicate BM3D refining (VFinal)
+- replace low frequency components of both source clip and basic estimation with low frequencies from the filtered result
+- replace macroblock boundaries in source clip with the basic estimation
+
+```python
+Deblocking (src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0")
+```
