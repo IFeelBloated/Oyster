@@ -121,9 +121,9 @@ Deblocking (src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.
 
 ## Demos
 - Destaircase<br />
-![](http://i.imgur.com/7JZUJej.png)
 ```python
 ref = Oyster.Basic (clp, Oyster.Super (clp))
 clp = Oyster.Destaircase (clp, ref, block_step=2)
 ```
+![](http://i.imgur.com/7JZUJej.png)
 ![](http://i.imgur.com/EemwCmC.png)
