@@ -118,3 +118,12 @@ workflow:
 ```python
 Deblocking (src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0")
 ```
+
+## Demos
+- Destaircase<br />
+![](http://i.imgur.com/7JZUJej.png)
+```python
+ref = Oyster.Basic (clp, Oyster.Super (clp))
+clp = Oyster.Destaircase (clp, ref, block_step=2)
+```
+![](http://i.imgur.com/EemwCmC.png)
