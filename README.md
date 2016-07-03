@@ -154,3 +154,13 @@ clp = Oyster.Deringing (clp, ref, sigma=24.0, h=12.8, block_step=2)
 ```
 ![](http://i.imgur.com/Iw0wy79.png)
 ![](http://i.imgur.com/NX8ugUu.png)
+- Deblocking<br />
+```python
+ref = Oyster.Basic (clp, Oyster.Super (clp))
+clp = Oyster.Deblocking (clp, ref, block_step=2)
+clp = Oyster.Deringing (clp, ref, sigma=24.0, h=10.8, block_step=2)
+```
+![](http://i.imgur.com/CZzS4Ci.png)
+![](http://i.imgur.com/YmFQVCg.png)
+![](http://i.imgur.com/kgksDfR.png)
+![](http://i.imgur.com/hHbHxxM.png)
