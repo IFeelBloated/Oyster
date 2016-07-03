@@ -36,6 +36,8 @@ and oyster handles 3 of them, ringing, staircase noise and blockiness
 ## Notes
 - **DO NOT** upsample your video to YUV 4:4:4 or RGB before processing if it's not natively full-sampled, just pass Y as a gray clip and merge the result with UV from the source clip, low-res chroma will jeopardize the correctness of weight calculation (fatal, especially to NLMeans).
 - **DO NOT** crop your video before processing, it will destroy the macroblock boundary detecting.
+- **QUALITY**: cutting edge
+- **PERFORMANCE**: abysmal, like, literally..
 
 ## Details
 ### Super
@@ -106,7 +108,7 @@ Destaircase (src, ref, radius=6, sigma=16.0, mse=[None, None], hard_thr=3.2, blo
   elasticity of the threshold, ranges from 0.0 to thr.
 
 ### Deblocking
-generally, Destaircase + Deringing combo is enough to typical blocking artifacts, this one works in extreme cases with severe blocking artifacts, you can actually tell this filter is fairly destructive from the previous "extreme cases" statement, **DON'T** use it if you don't have to, and use it with caution
+generally, Destaircase + Deringing combo is enough to typical blocking artifacts, this one works in extreme cases with severe blocking artifacts, you can actually tell this filter is fairly destructive from the previous "extreme cases" statement, **DON'T** use it unless you have to, and use it with caution
 
 workflow:
 - Make a 100% free-of-artifacts copy of the input by appending an NLMeans filtering to the basic estimation, regardless of detail loss
