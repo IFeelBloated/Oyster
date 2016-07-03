@@ -97,7 +97,7 @@ workflow:
 - a threshold based limiter eliminates all small differences, discontinuities are large differences apparently
 - coarse BM3D refining (VBasic)
 - more delicate BM3D refining (VFinal)
-- replace macroblock boundaries in source clip with the filtered result
+- replace macroblock boundaries in the source clip with the filtered result
 
 ```python
 Destaircase (src, ref, radius=6, sigma=16.0, mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, thr=0.03125, elast=0.015625, lowpass=None)
@@ -115,7 +115,7 @@ workflow:
 - coarse BM3D refining (VBasic)
 - more delicate BM3D refining (VFinal)
 - replace low frequency components of both source clip and basic estimation with low frequencies from the filtered result
-- replace macroblock boundaries in source clip with the basic estimation
+- replace macroblock boundaries in the source clip with the basic estimation
 
 ```python
 Deblocking (src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0")
@@ -145,3 +145,11 @@ clp = Oyster.Deringing (clp, ref, sigma=24.0, h=12.8, block_step=2)
 ```
 ![](http://i.imgur.com/jCDUuJa.png)
 ![](http://i.imgur.com/84rdAEK.png)
+- Deringing (H.264 compression artifacts)<br />
+```python
+ref = Oyster.Basic (clp, Oyster.Super (clp))
+clp = Oyster.Destaircase (clp, ref, sigma=24.0, block_step=2)
+clp = Oyster.Deringing (clp, ref, sigma=24.0, h=12.8, block_step=2)
+```
+![](http://i.imgur.com/Iw0wy79.png)
+![](http://i.imgur.com/NX8ugUu.png)
