@@ -146,6 +146,7 @@ clp = Oyster.Deringing (clp, ref, sigma=24.0, h=12.8, block_step=2)
 ![](http://i.imgur.com/jCDUuJa.png)
 ![](http://i.imgur.com/84rdAEK.png)
 - Deringing (H.264 compression artifacts)<br />
+  *click the image and view at full size*
 ```python
 ref = Oyster.Basic (clp, Oyster.Super (clp))
 clp = Oyster.Destaircase (clp, ref, sigma=24.0, block_step=2)
