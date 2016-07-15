@@ -156,16 +156,20 @@ def Deringing (src, ref, radius=6, h=6.4, sigma=16.0, \
        ref                = RGB2OPP (ref, 1)
     if _colorspace == vs.GRAY:
        _color             = False
-    def _nlm_loop (flt, init, src, n):
+    def _nlm_loop (flt, init, src, n): 
         str               = n * h / 4 + _hfine * (1 - n / 4)
         window            = 32 // pow (2, n)
+        long_term_mean    = [2, 3, 4, 3, 4]
+        short_term_mean   = [1, 1, 1, 2, 2]
         flt               = init if n == 4 else flt
         dif               = MakeDiff (src, flt)
-        dif               = helpers.NLMeans (dif, 0, window, 1, str, flt, _color)
+        long_term_dif     = helpers.NLMeans (dif, 0, window, long_term_mean[n], str, flt, _color)
+        short_term_dif    = helpers.NLMeans (dif, 0, window, short_term_mean[n], str, flt, _color)
+        dif               = helpers.freq_merge (long_term_dif, short_term_dif, block_size // 2 * 2 + 1, lowpass)
         fnl               = MergeDiff (flt, dif)
         n                 = n - 1
         return fnl if n == -1 else _nlm_loop (fnl, init, src, n)
-    ref                   = helpers.freq_merge (src, ref, block_size // 2 * 2 + 1, lowpass) if lowpass != 0 else ref
+    ref                   = helpers.freq_merge (src, ref, block_size // 2 * 2 + 1, lowpass)
     dif                   = MakeDiff (src, ref)
     dif                   = BMBasic (dif, ref, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
                                      block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
@@ -177,7 +181,7 @@ def Deringing (src, ref, radius=6, h=6.4, sigma=16.0, \
                                      block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
                                      ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=_matrix)
     bm3d                  = Aggregate (bm3d, radius, 1)
-    bm3d                  = helpers.freq_merge (refined, bm3d, block_size // 2 * 2 + 1, lowpass) if lowpass != 0 else bm3d
+    bm3d                  = helpers.freq_merge (refined, bm3d, block_size // 2 * 2 + 1, lowpass)
     clip                  = _nlm_loop (None, bm3d, refined, 4)
     clip                  = OPP2RGB (clip, 1) if _rgb else clip
     return clip
@@ -214,7 +218,7 @@ def Destaircase (src, ref, radius=6, sigma=16.0, \
     if _colorspace == vs.GRAY:
        _color             = False
     mask                  = helpers.genblockmask (ShufflePlanes (src, 0, vs.GRAY))
-    ref                   = helpers.freq_merge (src, ref, block_size // 2 * 2 + 1, lowpass) if lowpass != 0 else ref
+    ref                   = helpers.freq_merge (src, ref, block_size // 2 * 2 + 1, lowpass)
     ref                   = helpers.thr_merge (src, ref, thr=thr, elast=elast)
     dif                   = MakeDiff (src, ref)
     dif                   = BMBasic (dif, ref, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
@@ -270,15 +274,14 @@ def Deblocking (src, ref, radius=6, h=6.4, sigma=16.0, \
                                      ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=_matrix)
     dif                   = Aggregate (dif, radius, 1)
     cleansed              = MergeDiff (cleansed, dif)
-
     dif                   = MakeDiff (ref, cleansed)
     dif                   = BMFinal (dif, cleansed, radius=radius, th_mse=mse[1], sigma=sigma, \
                                      block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
                                      ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=_matrix)
     dif                   = Aggregate (dif, radius, 1)
     cleansed              = MergeDiff (cleansed, dif)
-    ref                   = helpers.freq_merge (cleansed, ref, block_size // 2 * 2 + 1, lowpass) if lowpass != 0 else ref
-    src                   = helpers.freq_merge (cleansed, src, block_size // 2 * 2 + 1, lowpass) if lowpass != 0 else src
+    ref                   = helpers.freq_merge (cleansed, ref, block_size // 2 * 2 + 1, lowpass)
+    src                   = helpers.freq_merge (cleansed, src, block_size // 2 * 2 + 1, lowpass)
     clip                  = MaskedMerge (src, ref, mask, first_plane=True)
     clip                  = OPP2RGB (clip, 1) if _rgb else clip
     return clip
