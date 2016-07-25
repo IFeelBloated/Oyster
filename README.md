@@ -140,11 +140,11 @@ clp = Oyster.Deringing (clp, ref, block_step=2)
 - Deringing (severe mosquito noise)<br />
 ```python
 ref = Oyster.Basic (clp, Oyster.Super (clp))
-clp = Oyster.Destaircase (clp, ref, block_step=2)
-clp = Oyster.Deringing (clp, ref, sigma=24.0, h=12.8, block_step=2)
+clp = Oyster.Destaircase (clp, ref, block_step=2, lowpass="0.0:1024 1.0:1024")
+clp = Oyster.Deringing (clp, ref, sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
 ```
 ![](http://i.imgur.com/jCDUuJa.png)
-![](http://i.imgur.com/84rdAEK.png)
+![](http://i.imgur.com/JqDZrtD.png)
 - Deringing (H.264 compression artifacts)<br />
   *click the image and view at full size*
 ```python
