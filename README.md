@@ -131,11 +131,13 @@ clip = core.std.ShufflePlanes([y, clip], [0, 1, 2], vs.YUV)
 ![](http://i.imgur.com/MFA0sNY.png)
 - Deringing<br />
 ```python
-ref = Oyster.Basic (clp, Oyster.Super (clp))
-clp = Oyster.Destaircase (clp, ref, block_step=2)
-clp = Oyster.Deringing (clp, ref, block_step=2)
+y    = core.std.ShufflePlanes(clip, 0, vs.GRAY)
+ref  = Oyster.Basic(y, Oyster.Super(y))
+y    = Oyster.Destaircase (y, ref, block_step=2)
+y    = Oyster.Deringing (y, ref, block_step=2)
+clip = core.std.ShufflePlanes([y, clip], [0, 1, 2], vs.YUV)
 ```
-![](http://i.imgur.com/Nn6LymV.png)
+![](http://i.imgur.com/ixqv2fj.png)
 ![](http://i.imgur.com/fLomtIs.png)
 - Deringing (severe mosquito noise)<br />
 ```python
