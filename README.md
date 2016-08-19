@@ -36,6 +36,7 @@ and oyster handles 3 of them, ringing, staircase noise and blockiness
 ## Notes
 - **DO NOT** upsample your video to YUV 4:4:4 or RGB before processing if it's not natively full-sampled, just pass Y as a gray clip and merge the result with UV from the source clip, low-res chroma will jeopardize the correctness of weight calculation (fatal, especially to NLMeans).
 - **DO NOT** crop your video before processing, it will destroy the macroblock boundary detecting.
+- **NO** scene change policy provided, take [Wobbly](https://github.com/dubhater/Wobbly) and cut each scene out and process them individually
 - **QUALITY**: cutting edge
 - **PERFORMANCE**: abysmal, like, literally..
 
