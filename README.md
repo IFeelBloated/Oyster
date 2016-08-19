@@ -143,7 +143,7 @@ clip = core.std.ShufflePlanes([y, clip], [0, 1, 2], vs.YUV)
 ```python
 y    = core.std.ShufflePlanes(clip, 0, vs.GRAY)
 ref  = Oyster.Basic(y, Oyster.Super(y))
-y    = Oyster.Destaircase(y, ref, block_step=2, lowpass="0.0:1024 1.0:1024")
+y    = Oyster.Deblocking(y, ref, block_step=2, h=3.2)
 y    = Oyster.Deringing(y, ref, sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
 clip = core.std.ShufflePlanes([y, clip], [0, 1, 2], vs.YUV)
 ```
