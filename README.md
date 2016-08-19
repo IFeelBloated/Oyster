@@ -147,7 +147,7 @@ y    = Oyster.Destaircase(y, ref, sigma=24, block_step=2, lowpass="0.0:1024 1.0:
 y    = Oyster.Deringing(y, ref, sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
 clip = core.std.ShufflePlanes([y, clip], [0, 1, 2], vs.YUV)
 ```
-![](http://i.imgur.com/jCDUuJa.png)
+![](http://i.imgur.com/sr6k4ue.png)
 ![](http://i.imgur.com/JqDZrtD.png)
 - Deringing (H.264 compression artifacts)<br />
   *click the image and view at full size*
