@@ -123,7 +123,7 @@ Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2
 - Destaircase<br />
 ```python
 y    = core.std.ShufflePlanes(clip, 0, vs.GRAY)
-ref  = Oyster.Basic(y, Oyster.Super (y))
+ref  = Oyster.Basic(y, Oyster.Super(y))
 y    = Oyster.Destaircase(y, ref, block_step=2)
 clip = core.std.ShufflePlanes([y, clip], [0, 1, 2], vs.YUV)
 ```
