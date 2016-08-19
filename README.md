@@ -120,6 +120,7 @@ Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2
 ```
 
 ## Demos
+all gray stuff, what can I say.. native 4:4:4 vids are hard to find
 - Destaircase<br />
 ```python
 ref = Oyster.Basic(clip, Oyster.Super(clip))
