@@ -2,216 +2,200 @@ import vapoursynth as vs
 import math
 import mvmulti
 
-fmtc_args                 = dict(fulls=True, fulld=True)
-msuper_args               = dict(hpad=32, vpad=32, sharp=2, levels=0)
-manalyze_args             = dict(search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
-mrecalculate_args         = dict(truemotion=False, search=3, smooth=1, divide=0, dct=0)
-nnedi_args                = dict(field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
-dfttest_args              = dict(smode=0, sosize=0, tbsize=1, tosize=0, tmode=0)
+fmtc_args                      = dict(fulls=True, fulld=True)
+msuper_args                    = dict(hpad=32, vpad=32, sharp=2, levels=0)
+manalyze_args                  = dict(search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
+mrecalculate_args              = dict(truemotion=False, search=3, smooth=1, divide=0, dct=0)
+nnedi_args                     = dict(field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
+dfttest_args                   = dict(smode=0, sosize=0, tbsize=1, tosize=0, tmode=0)
 
-class helpers:
-      def freq_merge(low, hi, sbsize, sstring):
-          core            = vs.get_core()
-          DFTTest         = core.dfttest.DFTTest
-          MakeDiff        = core.std.MakeDiff
-          MergeDiff       = core.std.MergeDiff
-          hif             = MakeDiff(hi, DFTTest(hi, sbsize=sbsize, sstring=sstring, **dfttest_args))
-          clip            = MergeDiff(DFTTest(low, sbsize=sbsize, sstring=sstring, **dfttest_args), hif)
+class get_core:
+      def __init__(self):
+          self.core            = vs.get_core()
+          self.MSuper          = self.core.mvsf.Super
+          self.MAnalyze        = mvmulti.Analyze
+          self.MRecalculate    = mvmulti.Recalculate
+          self.MDegrainN       = mvmulti.DegrainN
+          self.RGB2OPP         = self.core.bm3d.RGB2OPP
+          self.OPP2RGB         = self.core.bm3d.OPP2RGB
+          self.BMBasic         = self.core.bm3d.VBasic
+          self.BMFinal         = self.core.bm3d.VFinal
+          self.Aggregate       = self.core.bm3d.VAggregate
+          self.DFTTest         = self.core.dfttest.DFTTest
+          self.KNLMeansCL      = self.core.knlm.KNLMeansCL
+          self.NNEDI           = self.core.nnedi3.nnedi3
+          self.Resample        = self.core.fmtc.resample
+          self.Expr            = self.core.std.Expr
+          self.MakeDiff        = self.core.std.MakeDiff
+          self.MergeDiff       = self.core.std.MergeDiff
+          self.Crop            = self.core.std.CropRel
+          self.CropAbs         = self.core.std.CropAbs
+          self.Transpose       = self.core.std.Transpose
+          self.BlankClip       = self.core.std.BlankClip
+          self.AddBorders      = self.core.std.AddBorders
+          self.StackHorizontal = self.core.std.StackHorizontal
+          self.StackVertical   = self.core.std.StackVertical
+          self.MaskedMerge     = self.core.std.MaskedMerge
+          self.ShufflePlanes   = self.core.std.ShufflePlanes
+          self.SetFieldBased   = self.core.std.SetFieldBased
+
+      def FreqMerge(self, low, hi, sbsize, sstring):
+          hif                  = self.MakeDiff(hi, self.DFTTest(hi, sbsize=sbsize, sstring=sstring, **dfttest_args))
+          clip                 = self.MergeDiff(self.DFTTest(low, sbsize=sbsize, sstring=sstring, **dfttest_args), hif)
           return clip
-      def padding(src, left, right, top, bottom):
-          core            = vs.get_core()
-          Resample        = core.fmtc.resample
-          w               = src.width
-          h               = src.height
-          clip            = Resample(src, w+left+right, h+top+bottom, -left, -top, w+left+right, h+top+bottom, kernel="point", **fmtc_args)
+
+      def Pad(self, src, left, right, top, bottom):
+          w                    = src.width
+          h                    = src.height
+          clip                 = self.Resample(src, w+left+right, h+top+bottom, -left, -top, w+left+right, h+top+bottom, kernel="point", **fmtc_args)
           return clip
-      def nlmeans(src, d, a, s, h, rclip, color):
-          core            = vs.get_core()
-          Crop            = core.std.CropRel
-          KNLMeansCL      = core.knlm.KNLMeansCL
+
+      def NLMeans(self, src, d, a, s, h, rclip, color):
           def duplicate(src):
               if d > 0:
-                 head     = src[0] * d
-                 tail     = src[src.num_frames - 1] * d
-                 clip     = head + src + tail
+                 head          = src[0] * d
+                 tail          = src[src.num_frames - 1] * d
+                 clip          = head + src + tail
               else:
-                 clip     = src
+                 clip          = src
               return clip
-          pad             = helpers.padding(src, a+s, a+s, a+s, a+s)
-          pad             = duplicate(pad)
+          pad                  = self.Pad(src, a+s, a+s, a+s, a+s)
+          pad                  = duplicate(pad)
           if rclip is not None:
-             rclip        = helpers.padding(rclip, a+s, a+s, a+s, a+s)
-             rclip        = duplicate(rclip)
-          nlm             = KNLMeansCL(pad, d=d, a=a, s=s, h=h, cmode=color, wref=1.0, rclip=rclip)
-          clip            = Crop(nlm, a+s, a+s, a+s, a+s)
+             rclip             = self.Pad(rclip, a+s, a+s, a+s, a+s)
+             rclip             = duplicate(rclip)
+          nlm                  = self.KNLMeansCL(pad, d=d, a=a, s=s, h=h, cmode=color, wref=1.0, rclip=rclip)
+          clip                 = self.Crop(nlm, a+s, a+s, a+s, a+s)
           return clip[d:clip.num_frames - d]
-      def thr_merge(flt, src, ref=None, thr=0.0009765625, elast=None):
-          core            = vs.get_core()
-          Expr            = core.std.Expr
-          MakeDiff        = core.std.MakeDiff
-          MergeDiff       = core.std.MergeDiff
-          ref             = src if ref is None else ref
-          elast           = thr / 2 if elast is None else elast
-          BExp            = ["x {thr} {elast} + z - 2 {elast} * / * y {elast} z + {thr} - 2 {elast} * / * +".format(thr=thr, elast=elast)]
-          BDif            = Expr(src, "0.0")
-          PDif            = Expr([flt, src], "x y - 0.0 max")
-          PRef            = Expr([flt, ref], "x y - 0.0 max")
-          PBLD            = Expr([PDif, BDif, PRef], BExp)
-          NDif            = Expr([flt, src], "y x - 0.0 max")
-          NRef            = Expr([flt, ref], "y x - 0.0 max")
-          NBLD            = Expr([NDif, BDif, NRef], BExp)
-          BLDD            = MakeDiff(PBLD, NBLD)
-          BLD             = MergeDiff(src, BLDD)
-          UDN             = Expr([flt, ref, BLD], ["x y - abs {thr} {elast} - > z x ?".format(thr=thr, elast=elast)])
-          clip            = Expr([flt, ref, UDN, src], ["x y - abs {thr} {elast} + < z a ?".format(thr=thr, elast=elast)])
+
+      def ThrMerge(self, flt, src, ref=None, thr=0.0009765625, elast=None):
+          ref                  = src if ref is None else ref
+          elast                = thr / 2 if elast is None else elast
+          BExp                 = ["x {thr} {elast} + z - 2 {elast} * / * y {elast} z + {thr} - 2 {elast} * / * +".format(thr=thr, elast=elast)]
+          BDif                 = self.Expr(src, "0.0")
+          PDif                 = self.Expr([flt, src], "x y - 0.0 max")
+          PRef                 = self.Expr([flt, ref], "x y - 0.0 max")
+          PBLD                 = self.Expr([PDif, BDif, PRef], BExp)
+          NDif                 = self.Expr([flt, src], "y x - 0.0 max")
+          NRef                 = self.Expr([flt, ref], "y x - 0.0 max")
+          NBLD                 = self.Expr([NDif, BDif, NRef], BExp)
+          BLDD                 = self.MakeDiff(PBLD, NBLD)
+          BLD                  = self.MergeDiff(src, BLDD)
+          UDN                  = self.Expr([flt, ref, BLD], ["x y - abs {thr} {elast} - > z x ?".format(thr=thr, elast=elast)])
+          clip                 = self.Expr([flt, ref, UDN, src], ["x y - abs {thr} {elast} + < z a ?".format(thr=thr, elast=elast)])
           return clip
-      def genblockmask(src):
-          core            = vs.get_core()
-          Resample        = core.fmtc.resample
-          BlankClip       = core.std.BlankClip
-          AddBorders      = core.std.AddBorders
-          StackHorizontal = core.std.StackHorizontal
-          StackVertical   = core.std.StackVertical
-          Expr            = core.std.Expr
-          CropAbs         = core.std.CropAbs
-          clip            = BlankClip(src, 24, 24, color=0.0)
-          clip            = AddBorders(clip, 4, 4, 4, 4, color=1.0)
-          clip            = StackHorizontal([clip, clip, clip, clip])
-          clip            = StackVertical([clip, clip, clip, clip])
-          clip            = Resample(clip, 32, 32, kernel="point", **fmtc_args)
-          clip            = Expr(clip, ["x 0.0 > 1.0 0.0 ?"])
-          clip            = StackHorizontal([clip, clip, clip, clip, clip, clip, clip, clip])
-          clip            = StackVertical([clip, clip, clip, clip, clip, clip])
-          clip            = StackHorizontal([clip, clip, clip, clip, clip, clip])
-          clip            = StackVertical([clip, clip, clip, clip, clip])
-          clip            = StackHorizontal([clip, clip, clip, clip, clip, clip])
-          clip            = StackVertical([clip, clip, clip, clip, clip])
-          clip            = CropAbs(clip, src.width, src.height, 0, 0)
+
+      def GenBlockMask(self, src):
+          clip                 = self.BlankClip(src, 24, 24, color=0.0)
+          clip                 = self.AddBorders(clip, 4, 4, 4, 4, color=1.0)
+          clip                 = self.StackHorizontal([clip, clip, clip, clip])
+          clip                 = self.StackVertical([clip, clip, clip, clip])
+          clip                 = self.Resample(clip, 32, 32, kernel="point", **fmtc_args)
+          clip                 = self.Expr(clip, ["x 0.0 > 1.0 0.0 ?"])
+          clip                 = self.StackHorizontal([clip, clip, clip, clip, clip, clip, clip, clip])
+          clip                 = self.StackVertical([clip, clip, clip, clip, clip, clip])
+          clip                 = self.StackHorizontal([clip, clip, clip, clip, clip, clip])
+          clip                 = self.StackVertical([clip, clip, clip, clip, clip])
+          clip                 = self.StackHorizontal([clip, clip, clip, clip, clip, clip])
+          clip                 = self.StackVertical([clip, clip, clip, clip, clip])
+          clip                 = self.CropAbs(clip, src.width, src.height, 0, 0)
           return clip
 
 class internal:
-      def super(src, pel):
-          core            = vs.get_core()
-          NNEDI           = core.nnedi3.nnedi3
-          Transpose       = core.std.Transpose
-          clip            = Transpose(NNEDI(Transpose(NNEDI(src, **nnedi_args)), **nnedi_args))
+      def super(core, src, pel):
+          clip                 = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(src, **nnedi_args)), **nnedi_args))
           if pel == 4:
-             clip         = Transpose(NNEDI(Transpose(NNEDI(clip, **nnedi_args)), **nnedi_args))
+             clip              = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(clip, **nnedi_args)), **nnedi_args))
           return clip
-      def basic(src, super, radius, pel, sad_me, sad_mc, color):
-          core            = vs.get_core()
-          MSuper          = core.mvsf.Super
-          MAnalyze        = mvmulti.Analyze
-          MRecalculate    = mvmulti.Recalculate
-          MDegrainN       = mvmulti.DegrainN
-          plane           = 4 if color else 0
-          supersoft       = MSuper(src, pelclip=super, rfilter=4, pel=pel, chroma=color, **msuper_args)
-          supersharp      = MSuper(src, pelclip=super, rfilter=2, pel=pel, chroma=color, **msuper_args)
-          vmulti          = MAnalyze(supersoft, tr=radius, chroma=color, overlap=16, blksize=32, **manalyze_args)
-          vmulti          = MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=sad_me, **mrecalculate_args)
-          vmulti          = MRecalculate(supersharp, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=sad_me, **mrecalculate_args)
-          vmulti          = MRecalculate(supersharp, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=sad_me, **mrecalculate_args)
-          clip            = MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad_mc, thscd1=10000.0, thscd2=255.0, plane=plane)
+
+      def basic(core, src, super, radius, pel, sad_me, sad_mc, color):
+          plane                = 4 if color else 0
+          supersoft            = core.MSuper(src, pelclip=super, rfilter=4, pel=pel, chroma=color, **msuper_args)
+          supersharp           = core.MSuper(src, pelclip=super, rfilter=2, pel=pel, chroma=color, **msuper_args)
+          vmulti               = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=16, blksize=32, **manalyze_args)
+          vmulti               = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=sad_me, **mrecalculate_args)
+          vmulti               = core.MRecalculate(supersharp, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=sad_me, **mrecalculate_args)
+          vmulti               = core.MRecalculate(supersharp, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=sad_me, **mrecalculate_args)
+          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad_mc, thscd1=10000.0, thscd2=255.0, plane=plane)
           return clip
-      def deringing(src, ref, radius, h, sigma, \
+
+      def deringing(core, src, ref, radius, h, sigma, \
                     mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                     lowpass, color, matrix):
-          core            = vs.get_core()
-          BMBasic         = core.bm3d.VBasic
-          BMFinal         = core.bm3d.VFinal
-          Aggregate       = core.bm3d.VAggregate
-          MakeDiff        = core.std.MakeDiff
-          MergeDiff       = core.std.MergeDiff
-          c1              = 1.1396386205122096184557327136584
-          c2              = 4.8995241035176996103733445761166
-          strength        = [h, None, None]
-          strength[1]     =((math.exp(c1 * h) - 1.0) /(math.pow(h, h) / math.gamma(h + 1.0))) / c2
+          c1                   = 1.1396386205122096184557327136584
+          c2                   = 4.8995241035176996103733445761166
+          strength             = [h]
+          strength            += [((math.exp(c1 * h) - 1.0) / (math.pow(h, h) / math.gamma(h + 1.0))) / c2]
+          strength            += [None]
           def loop(flt, init, src, n):
-              strength[2] = n * strength[0] / 4 + strength[1] *(1 - n / 4)
-              window      = 32 // pow(2, n)
-              flt         = init if n == 4 else flt
-              dif         = MakeDiff(src, flt)
-              dif         = helpers.nlmeans(dif, 0, window, 1, strength[2], flt, color)
-              fnl         = MergeDiff(flt, dif)
-              n          -= 1
+              strength[2]      = n * strength[0] / 4 + strength[1] * (1 - n / 4)
+              window           = 32 // math.pow(2, n)
+              flt              = init if n == 4 else flt
+              dif              = core.MakeDiff(src, flt)
+              dif              = core.NLMeans(dif, 0, window, 1, strength[2], flt, color)
+              fnl              = core.MergeDiff(flt, dif)
+              n               -= 1
               return fnl if n == -1 else loop(fnl, init, src, n)
-          ref             = helpers.freq_merge(src, ref, block_size // 2 * 2 + 1, lowpass)
-          dif             = MakeDiff(src, ref)
-          dif             = BMBasic(dif, ref, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
-                                    block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
-                                    ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
-          dif             = Aggregate(dif, radius, 1)
-          ref             = MergeDiff(ref, dif)
-          refined         = loop(None, ref, src, 4)
-          bm3d            = BMFinal(refined, ref, radius=radius, th_mse=mse[1], sigma=sigma, \
-                                    block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
-                                    ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
-          bm3d            = Aggregate(bm3d, radius, 1)
-          bm3d            = helpers.freq_merge(refined, bm3d, block_size // 2 * 2 + 1, lowpass)
-          clip            = loop(None, bm3d, refined, 4)
+          ref                  = core.FreqMerge(src, ref, block_size // 2 * 2 + 1, lowpass)
+          dif                  = core.MakeDiff(src, ref)
+          dif                  = core.BMBasic(dif, ref, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
+                                              block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                              ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
+          dif                  = core.Aggregate(dif, radius, 1)
+          ref                  = core.MergeDiff(ref, dif)
+          refined              = loop(None, ref, src, 4)
+          bm3d                 = core.BMFinal(refined, ref, radius=radius, th_mse=mse[1], sigma=sigma, \
+                                              block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                              ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
+          bm3d                 = core.Aggregate(bm3d, radius, 1)
+          bm3d                 = core.FreqMerge(refined, bm3d, block_size // 2 * 2 + 1, lowpass)
+          clip                 = loop(None, bm3d, refined, 4)
           return clip
-      def destaircase(src, ref, radius, sigma, \
+
+      def destaircase(core, src, ref, radius, sigma, \
                       mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                       thr, elast, lowpass, matrix):
-          core            = vs.get_core()
-          BMBasic         = core.bm3d.VBasic
-          BMFinal         = core.bm3d.VFinal
-          Aggregate       = core.bm3d.VAggregate
-          MakeDiff        = core.std.MakeDiff
-          MergeDiff       = core.std.MergeDiff
-          MaskedMerge     = core.std.MaskedMerge
-          ShufflePlanes   = core.std.ShufflePlanes
-          mask            = helpers.genblockmask(ShufflePlanes(src, 0, vs.GRAY))
-          ref             = helpers.freq_merge(src, ref, block_size // 2 * 2 + 1, lowpass)
-          ref             = helpers.thr_merge(src, ref, thr=thr, elast=elast)
-          dif             = MakeDiff(src, ref)
-          dif             = BMBasic(dif, ref, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
-                                    block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
-                                    ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
-          dif             = Aggregate(dif, radius, 1)
-          ref             = MergeDiff(ref, dif)
-          dif             = MakeDiff(src, ref)
-          dif             = BMFinal(dif, ref, radius=radius, th_mse=mse[1], sigma=sigma, \
-                                    block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
-                                    ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
-          dif             = Aggregate(dif, radius, 1)
-          ref             = MergeDiff(ref, dif)
-          clip            = MaskedMerge(src, ref, mask, first_plane=True)
+          mask                 = core.GenBlockMask(core.ShufflePlanes(src, 0, vs.GRAY))
+          ref                  = core.FreqMerge(src, ref, block_size // 2 * 2 + 1, lowpass)
+          ref                  = core.ThrMerge(src, ref, thr=thr, elast=elast)
+          dif                  = core.MakeDiff(src, ref)
+          dif                  = core.BMBasic(dif, ref, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
+                                              block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                              ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
+          dif                  = core.Aggregate(dif, radius, 1)
+          ref                  = core.MergeDiff(ref, dif)
+          dif                  = core.MakeDiff(src, ref)
+          dif                  = core.BMFinal(dif, ref, radius=radius, th_mse=mse[1], sigma=sigma, \
+                                              block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                              ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
+          dif                  = core.Aggregate(dif, radius, 1)
+          ref                  = core.MergeDiff(ref, dif)
+          clip                 = core.MaskedMerge(src, ref, mask, first_plane=True)
           return clip
-      def deblocking(src, ref, radius, h, sigma, \
+
+      def deblocking(core, src, ref, radius, h, sigma, \
                      mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                      lowpass, color, matrix):
-          core            = vs.get_core()
-          BMBasic         = core.bm3d.VBasic
-          BMFinal         = core.bm3d.VFinal
-          Aggregate       = core.bm3d.VAggregate
-          MakeDiff        = core.std.MakeDiff
-          MergeDiff       = core.std.MergeDiff
-          MaskedMerge     = core.std.MaskedMerge
-          ShufflePlanes   = core.std.ShufflePlanes
-          mask            = helpers.genblockmask(ShufflePlanes(src, 0, vs.GRAY))
-          cleansed        = helpers.nlmeans(ref, radius, block_size, 4, h, ref, color)
-          dif             = MakeDiff(ref, cleansed)
-          dif             = BMBasic(dif, cleansed, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
-                                    block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
-                                    ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
-          dif             = Aggregate(dif, radius, 1)
-          cleansed        = MergeDiff(cleansed, dif)
-          dif             = MakeDiff(ref, cleansed)
-          dif             = BMFinal(dif, cleansed, radius=radius, th_mse=mse[1], sigma=sigma, \
-                                    block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
-                                    ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
-          dif             = Aggregate(dif, radius, 1)
-          cleansed        = MergeDiff(cleansed, dif)
-          ref             = helpers.freq_merge(cleansed, ref, block_size // 2 * 2 + 1, lowpass)
-          src             = helpers.freq_merge(cleansed, src, block_size // 2 * 2 + 1, lowpass)
-          clip            = MaskedMerge(src, ref, mask, first_plane=True)
+          mask                 = core.GenBlockMask(core.ShufflePlanes(src, 0, vs.GRAY))
+          cleansed             = core.NLMeans(ref, radius, block_size, 4, h, ref, color)
+          dif                  = core.MakeDiff(ref, cleansed)
+          dif                  = core.BMBasic(dif, cleansed, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
+                                              block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                              ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
+          dif                  = core.Aggregate(dif, radius, 1)
+          cleansed             = core.MergeDiff(cleansed, dif)
+          dif                  = core.MakeDiff(ref, cleansed)
+          dif                  = core.BMFinal(dif, cleansed, radius=radius, th_mse=mse[1], sigma=sigma, \
+                                              block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
+                                              ps_num=ps_num, ps_range=ps_range, ps_step=ps_step, matrix=matrix)
+          dif                  = core.Aggregate(dif, radius, 1)
+          cleansed             = core.MergeDiff(cleansed, dif)
+          ref                  = core.FreqMerge(cleansed, ref, block_size // 2 * 2 + 1, lowpass)
+          src                  = core.FreqMerge(cleansed, src, block_size // 2 * 2 + 1, lowpass)
+          clip                 = core.MaskedMerge(src, ref, mask, first_plane=True)
           return clip
 
 def Super(src, pel=4):
-    core                  = vs.get_core()
-    RGB2OPP               = core.bm3d.RGB2OPP
-    SetFieldBased         = core.std.SetFieldBased
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Super: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -222,18 +206,16 @@ def Super(src, pel=4):
        raise TypeError("Oyster.Super: pel has to be an integer!")
     elif pel != 2 and pel != 4:
        raise RuntimeError("Oyster.Super: pel has to be 2 or 4!")
-    src                   = SetFieldBased(src, 0)
-    colorspace            = src.format.color_family
+    core                       = get_core()
+    src                        = core.SetFieldBased(src, 0)
+    colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
-       src                = RGB2OPP(src, 1)
-    clip                  = internal.super(src, pel)
+       src                     = core.RGB2OPP(src, 1)
+    clip                       = internal.super(core, src, pel)
+    del core
     return clip
 
 def Basic(src, super=None, radius=6, pel=4, sad_me=200.0, sad_mc=2000.0):
-    core                  = vs.get_core()
-    RGB2OPP               = core.bm3d.RGB2OPP
-    OPP2RGB               = core.bm3d.OPP2RGB
-    SetFieldBased         = core.std.SetFieldBased
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Basic: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -261,27 +243,25 @@ def Basic(src, super=None, radius=6, pel=4, sad_me=200.0, sad_mc=2000.0):
        raise TypeError("Oyster.Basic: sad_mc has to be a real number!")
     elif sad_mc <= 0:
        raise RuntimeError("Oyster.Basic: sad_mc has to be greater than 0!")
-    color                 = True
-    rgb                   = False
-    colorspace            = src.format.color_family
+    core                       = get_core()
+    color                      = True
+    rgb                        = False
+    colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
-       src                = RGB2OPP(src, 1)
-       rgb                = True
+       src                     = core.RGB2OPP(src, 1)
+       rgb                     = True
     if colorspace == vs.GRAY:
-       color              = False
-    src                   = SetFieldBased(src, 0)
-    super                 = SetFieldBased(super, 0) if super is not None else None
-    clip                  = internal.basic(src, super, radius, pel, sad_me, sad_mc, color)
-    clip                  = OPP2RGB(clip, 1) if rgb else clip
+       color                   = False
+    src                        = core.SetFieldBased(src, 0)
+    super                      = core.SetFieldBased(super, 0) if super is not None else None
+    clip                       = internal.basic(core, src, super, radius, pel, sad_me, sad_mc, color)
+    clip                       = core.OPP2RGB(clip, 1) if rgb else clip
+    del core
     return clip
 
 def Deringing(src, ref, radius=6, h=6.4, sigma=16.0, \
               mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
               lowpass=None):
-    core                  = vs.get_core()
-    RGB2OPP               = core.bm3d.RGB2OPP
-    OPP2RGB               = core.bm3d.OPP2RGB
-    SetFieldBased         = core.std.SetFieldBased
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Deringing: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -311,35 +291,33 @@ def Deringing(src, ref, radius=6, h=6.4, sigma=16.0, \
            raise TypeError("Oyster.Deringing: elements in mse must be real numbers or None!")
     if not isinstance(lowpass, str) and lowpass is not None:
        raise TypeError("Oyster.Deringing: lowpass has to be a string or None!")
-    rgb                   = False
-    color                 = True
-    mse[0]                = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
-    mse[1]                = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
-    lowpass               = "0.0:{sigma} 0.48:1024.0 1.0:1024.0".format(sigma=sigma) if lowpass is None else lowpass
-    matrix                = None
-    colorspace            = src.format.color_family
+    core                       = get_core()
+    rgb                        = False
+    color                      = True
+    mse[0]                     = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
+    mse[1]                     = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
+    lowpass                    = "0.0:{sigma} 0.48:1024.0 1.0:1024.0".format(sigma=sigma) if lowpass is None else lowpass
+    matrix                     = None
+    colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
-       rgb                = True
-       matrix             = 100
-       src                = RGB2OPP(src, 1)
-       ref                = RGB2OPP(ref, 1)
+       rgb                     = True
+       matrix                  = 100
+       src                     = core.RGB2OPP(src, 1)
+       ref                     = core.RGB2OPP(ref, 1)
     if colorspace == vs.GRAY:
-       color              = False
-    src                   = SetFieldBased(src, 0)
-    ref                   = SetFieldBased(ref, 0)
-    clip                  = internal.deringing(src, ref, radius, h, sigma, \
-                                               mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
-                                               lowpass, color, matrix)
-    clip                  = OPP2RGB(clip, 1) if rgb else clip
+       color                   = False
+    src                        = core.SetFieldBased(src, 0)
+    ref                        = core.SetFieldBased(ref, 0)
+    clip                       = internal.deringing(core, src, ref, radius, h, sigma, \
+                                                    mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
+                                                    lowpass, color, matrix)
+    clip                       = core.OPP2RGB(clip, 1) if rgb else clip
+    del core
     return clip
 
 def Destaircase(src, ref, radius=6, sigma=16.0, \
                 mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
                 thr=0.03125, elast=0.015625, lowpass=None):
-    core                  = vs.get_core()
-    RGB2OPP               = core.bm3d.RGB2OPP
-    OPP2RGB               = core.bm3d.OPP2RGB
-    SetFieldBased         = core.std.SetFieldBased
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Destaircase: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -373,32 +351,30 @@ def Destaircase(src, ref, radius=6, sigma=16.0, \
        raise RuntimeError("Oyster.Destaircase: elast has to fall in [0, thr]!")
     if not isinstance(lowpass, str) and lowpass is not None:
        raise TypeError("Oyster.Destaircase: lowpass has to be a string or None!")
-    rgb                   = False
-    mse[0]                = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
-    mse[1]                = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
-    lowpass               = "0.0:{sigma} 0.48:1024.0 1.0:1024.0".format(sigma=sigma) if lowpass is None else lowpass
-    matrix                = None
-    colorspace            = src.format.color_family
+    core                       = get_core()
+    rgb                        = False
+    mse[0]                     = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
+    mse[1]                     = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
+    lowpass                    = "0.0:{sigma} 0.48:1024.0 1.0:1024.0".format(sigma=sigma) if lowpass is None else lowpass
+    matrix                     = None
+    colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
-       rgb                = True
-       matrix             = 100
-       src                = RGB2OPP(src, 1)
-       ref                = RGB2OPP(ref, 1)
-    src                   = SetFieldBased(src, 0)
-    ref                   = SetFieldBased(ref, 0)
-    clip                  = internal.destaircase(src, ref, radius, sigma, \
-                                                 mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
-                                                 thr, elast, lowpass, matrix)
-    clip                  = OPP2RGB(clip, 1) if rgb else clip
+       rgb                     = True
+       matrix                  = 100
+       src                     = core.RGB2OPP(src, 1)
+       ref                     = core.RGB2OPP(ref, 1)
+    src                        = core.SetFieldBased(src, 0)
+    ref                        = core.SetFieldBased(ref, 0)
+    clip                       = internal.destaircase(core, src, ref, radius, sigma, \
+                                                      mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
+                                                      thr, elast, lowpass, matrix)
+    clip                       = core.OPP2RGB(clip, 1) if rgb else clip
+    del core
     return clip
 
 def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
                mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
                lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0"):
-    core                  = vs.get_core()
-    RGB2OPP               = core.bm3d.RGB2OPP
-    OPP2RGB               = core.bm3d.OPP2RGB
-    SetFieldBased         = core.std.SetFieldBased
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Deblocking: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -428,23 +404,25 @@ def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
            raise TypeError("Oyster.Deblocking: elements in mse must be real numbers or None!")
     if not isinstance(lowpass, str):
        raise TypeError("Oyster.Deblocking: lowpass has to be a string!")
-    rgb                   = False
-    color                 = True
-    mse[0]                = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
-    mse[1]                = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
-    matrix                = None
-    colorspace            = src.format.color_family
+    core                       = get_core()
+    rgb                        = False
+    color                      = True
+    mse[0]                     = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
+    mse[1]                     = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
+    matrix                     = None
+    colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
-       rgb                = True
-       matrix             = 100
-       src                = RGB2OPP(src, 1)
-       ref                = RGB2OPP(ref, 1)
+       rgb                     = True
+       matrix                  = 100
+       src                     = core.RGB2OPP(src, 1)
+       ref                     = core.RGB2OPP(ref, 1)
     if colorspace == vs.GRAY:
-       color              = False
-    src                   = SetFieldBased(src, 0)
-    ref                   = SetFieldBased(ref, 0)
-    clip                  = internal.deblocking(src, ref, radius, h, sigma, \
-                                                mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
-                                                lowpass, color, matrix)
-    clip                  = OPP2RGB(clip, 1) if rgb else clip
+       color                   = False
+    src                        = core.SetFieldBased(src, 0)
+    ref                        = core.SetFieldBased(ref, 0)
+    clip                       = internal.deblocking(core, src, ref, radius, h, sigma, \
+                                                     mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
+                                                     lowpass, color, matrix)
+    clip                       = core.OPP2RGB(clip, 1) if rgb else clip
+    del core
     return clip
