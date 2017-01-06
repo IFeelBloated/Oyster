@@ -3,7 +3,7 @@ import math
 import mvmulti
 
 fmtc_args                      = dict(fulls=True, fulld=True)
-msuper_args                    = dict(hpad=32, vpad=32, sharp=2, levels=0)
+msuper_args                    = dict(hpad=0, vpad=0, sharp=2, levels=0)
 manalyze_args                  = dict(search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
 mrecalculate_args              = dict(truemotion=False, search=3, smooth=1, divide=0, dct=0)
 nnedi_args                     = dict(field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
@@ -103,20 +103,29 @@ class get_core:
 
 class internal:
       def super(core, src, pel):
+          src                  = core.Pad(src, 32, 32, 32, 32)
           clip                 = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(src, **nnedi_args)), **nnedi_args))
           if pel == 4:
              clip              = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(clip, **nnedi_args)), **nnedi_args))
           return clip
 
-      def basic(core, src, super, radius, pel, sad_me, sad_mc, color):
+      def basic(core, src, super, radius, pel, sad, short_time, color):
           plane                = 4 if color else 0
+          constant             = 0.0001989762736579584832432989326
+          rsad                 = constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))
+          src                  = core.Pad(src, 32, 32, 32, 32)
           supersoft            = core.MSuper(src, pelclip=super, rfilter=4, pel=pel, chroma=color, **msuper_args)
           supersharp           = core.MSuper(src, pelclip=super, rfilter=2, pel=pel, chroma=color, **msuper_args)
-          vmulti               = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=16, blksize=32, **manalyze_args)
-          vmulti               = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=sad_me, **mrecalculate_args)
-          vmulti               = core.MRecalculate(supersharp, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=sad_me, **mrecalculate_args)
-          vmulti               = core.MRecalculate(supersharp, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=sad_me, **mrecalculate_args)
-          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad_mc, thscd1=10000.0, thscd2=255.0, plane=plane)
+          if short_time:
+             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=4, blksize=8, **manalyze_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=rsad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=1, blksize=2, thsad=sad, **mrecalculate_args)
+          else:
+             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=16, blksize=32, **manalyze_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=rsad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=sad, **mrecalculate_args)
+          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, thscd1=1000000.0, thscd2=255.0, plane=plane)
+          clip                 = core.Crop(clip, 32, 32, 32, 32)
           return clip
 
       def deringing(core, src, ref, radius, h, sigma, \
@@ -129,7 +138,7 @@ class internal:
           strength            += [None]
           def loop(flt, init, src, n):
               strength[2]      = n * strength[0] / 4 + strength[1] * (1 - n / 4)
-              window           = 32 // math.pow(2, n)
+              window           = int(32 / math.pow(2, n))
               flt              = init if n == 4 else flt
               dif              = core.MakeDiff(src, flt)
               dif              = core.NLMeans(dif, 0, window, 1, strength[2], flt, color)
@@ -215,7 +224,7 @@ def Super(src, pel=4):
     del core
     return clip
 
-def Basic(src, super=None, radius=6, pel=4, sad_me=200.0, sad_mc=2000.0):
+def Basic(src, super=None, radius=6, pel=4, sad=2000.0, short_time=False):
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Basic: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -235,14 +244,12 @@ def Basic(src, super=None, radius=6, pel=4, sad_me=200.0, sad_mc=2000.0):
        raise TypeError("Oyster.Basic: pel has to be an integer!")
     elif pel != 1 and pel != 2 and pel != 4:
        raise RuntimeError("Oyster.Basic: pel has to be 1, 2 or 4!")
-    if not isinstance(sad_me, float) and not isinstance(sad_me, int):
-       raise TypeError("Oyster.Basic: sad_me has to be a real number!")
-    elif sad_me <= 0:
-       raise RuntimeError("Oyster.Basic: sad_me has to be greater than 0!")
-    if not isinstance(sad_mc, float) and not isinstance(sad_mc, int):
-       raise TypeError("Oyster.Basic: sad_mc has to be a real number!")
-    elif sad_mc <= 0:
-       raise RuntimeError("Oyster.Basic: sad_mc has to be greater than 0!")
+    if not isinstance(sad, float) and not isinstance(sad, int):
+       raise TypeError("Oyster.Basic: sad has to be a real number!")
+    elif sad <= 0.0:
+       raise RuntimeError("Oyster.Basic: sad has to be greater than 0!")
+    if not isinstance(short_time, bool):
+       raise TypeError("Oyster.Basic: short_time has to be boolean!")
     core                       = get_core()
     color                      = True
     rgb                        = False
@@ -254,7 +261,7 @@ def Basic(src, super=None, radius=6, pel=4, sad_me=200.0, sad_mc=2000.0):
        color                   = False
     src                        = core.SetFieldBased(src, 0)
     super                      = core.SetFieldBased(super, 0) if super is not None else None
-    clip                       = internal.basic(core, src, super, radius, pel, sad_me, sad_mc, color)
+    clip                       = internal.basic(core, src, super, radius, pel, sad, short_time, color)
     clip                       = core.OPP2RGB(clip, 1) if rgb else clip
     del core
     return clip
@@ -372,7 +379,7 @@ def Destaircase(src, ref, radius=6, sigma=16.0, \
     del core
     return clip
 
-def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
+def Deblocking(src, ref, radius=6, h=2.4, sigma=16.0, \
                mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
                lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0"):
     if not isinstance(src, vs.VideoNode):
