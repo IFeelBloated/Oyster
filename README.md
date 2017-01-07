@@ -135,7 +135,7 @@ clip = Oyster.Destaircase(clip, Oyster.Basic(clip, sup, short_time=False), block
 clip = Oyster.Deringing(clip, Oyster.Basic(clip, sup, short_time=True), block_step=2)
 ```
 ![](http://i.imgur.com/Nn6LymV.png)
-![](http://i.imgur.com/fLomtIs.png)
+![](http://i.imgur.com/dAi0TNQ.png)
 - Deringing (severe mosquito noise)<br />
 ```python
 sup = Oyster.Super(clip)
