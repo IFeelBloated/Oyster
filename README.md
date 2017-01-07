@@ -143,7 +143,7 @@ clip = Oyster.Destaircase(clip, Oyster.Basic(clip, sup, short_time=False), block
 clip = Oyster.Deringing(clip, Oyster.Basic(clip, sup, short_time=True), sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
 ```
 ![](http://i.imgur.com/jCDUuJa.png)
-![](http://i.imgur.com/JqDZrtD.png)
+![](http://i.imgur.com/BdKg9bO.png)
 - Deringing (H.264 compression artifacts)<br />
   *click the image and view at full size*
 ```python
