@@ -126,8 +126,8 @@ Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, mse=[None, None], hard_thr=3.2
 ref = Oyster.Basic(clip, Oyster.Super(clip), short_time=False)
 clip = Oyster.Destaircase(clip, ref, block_step=2)
 ```
-![](http://i.imgur.com/7JZUJej.png)
-![](http://i.imgur.com/EemwCmC.png)
+![](http://i.imgur.com/nyckLXH.png)
+![](http://i.imgur.com/tK1PioW.png)
 - Deringing<br />
 ```python
 sup = Oyster.Super(clip)
