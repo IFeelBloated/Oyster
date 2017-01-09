@@ -169,5 +169,3 @@ clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=10.8, block_step=2)
 ```
 ![](http://i.imgur.com/CZzS4Ci.png)
 ![](http://i.imgur.com/o6wgxH7.png)
-![](http://i.imgur.com/kgksDfR.png)
-![](http://i.imgur.com/hjAoRuY.png)
