@@ -103,7 +103,7 @@ class get_core:
 
 class internal:
       def super(core, src, pel):
-          src                  = core.Pad(src, 32, 32, 32, 32)
+          src                  = core.Pad(src, 16, 16, 16, 16)
           clip                 = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(src, **nnedi_args)), **nnedi_args))
           if pel == 4:
              clip              = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(clip, **nnedi_args)), **nnedi_args))
@@ -113,7 +113,7 @@ class internal:
           plane                = 4 if color else 0
           constant             = 0.0001989762736579584832432989326
           rsad                 = constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))
-          src                  = core.Pad(src, 32, 32, 32, 32)
+          src                  = core.Pad(src, 16, 16, 16, 16)
           supersoft            = core.MSuper(src, pelclip=super, rfilter=4, pel=pel, chroma=color, **msuper_args)
           supersharp           = core.MSuper(src, pelclip=super, rfilter=2, pel=pel, chroma=color, **msuper_args)
           if short_time:
@@ -121,11 +121,11 @@ class internal:
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=rsad, **mrecalculate_args)
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=1, blksize=2, thsad=sad, **mrecalculate_args)
           else:
-             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=16, blksize=32, **manalyze_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=rsad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=sad, **mrecalculate_args)
+             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=8, blksize=16, **manalyze_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=rsad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=sad, **mrecalculate_args)
           clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, thscd1=1000000.0, thscd2=255.0, plane=plane)
-          clip                 = core.Crop(clip, 32, 32, 32, 32)
+          clip                 = core.Crop(clip, 16, 16, 16, 16)
           return clip
 
       def deringing(core, src, ref, radius, h, sigma, \
@@ -379,7 +379,7 @@ def Destaircase(src, ref, radius=6, sigma=16.0, \
     del core
     return clip
 
-def Deblocking(src, ref, radius=6, h=2.4, sigma=16.0, \
+def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
                mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
                lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0"):
     if not isinstance(src, vs.VideoNode):
