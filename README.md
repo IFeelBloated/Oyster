@@ -127,7 +127,7 @@ ref = Oyster.Basic(clip, Oyster.Super(clip), short_time=False)
 clip = Oyster.Destaircase(clip, ref, block_step=2)
 ```
 ![](http://i.imgur.com/nyckLXH.png)
-![]()
+![](http://i.imgur.com/ISWHstM.png)
 - Deringing<br />
 ```python
 sup = Oyster.Super(clip)
