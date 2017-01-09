@@ -131,35 +131,43 @@ clip = Oyster.Destaircase(clip, ref, block_step=2)
 - Deringing<br />
 ```python
 sup = Oyster.Super(clip)
-clip = Oyster.Destaircase(clip, Oyster.Basic(clip, sup, short_time=False), block_step=2)
-clip = Oyster.Deringing(clip, Oyster.Basic(clip, sup, short_time=True), block_step=2)
+ref_f = Oyster.Basic(clip, sup, short_time=False)
+ref_s = Oyster.Basic(clip, sup, short_time=True)
+clip = Oyster.Destaircase(clip, ref_f, block_step=2)
+clip = Oyster.Deringing(clip, ref_s, block_step=2)
 ```
 ![](http://i.imgur.com/Nn6LymV.png)
-![](http://i.imgur.com/dAi0TNQ.png)
+![](http://i.imgur.com/NgvQQNY.png)
 - Deringing (severe mosquito noise)<br />
 ```python
 sup = Oyster.Super(clip)
-clip = Oyster.Destaircase(clip, Oyster.Basic(clip, sup, short_time=False), block_step=2, lowpass="0.0:1024 1.0:1024")
-clip = Oyster.Deringing(clip, Oyster.Basic(clip, sup, short_time=True), sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
+ref_f = Oyster.Basic(clip, sup, short_time=False)
+ref_s = Oyster.Basic(clip, sup, short_time=True)
+clip = Oyster.Destaircase(clip, ref_f, block_step=2, lowpass="0.0:1024 1.0:1024")
+clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
 ```
 ![](http://i.imgur.com/jCDUuJa.png)
-![](http://i.imgur.com/BdKg9bO.png)
-- Deringing (H.264 compression artifacts)<br />
+![](http://i.imgur.com/TpBA71y.png)
+- Deringing (H.264/H.265 compression artifacts)<br />
   *click the image and view at full size*
 ```python
 sup = Oyster.Super(clip)
-clip = Oyster.Destaircase(clip, Oyster.Basic(clip, sup, short_time=False), sigma=24.0, block_step=2)
-clip = Oyster.Deringing(clip, Oyster.Basic(clip, sup, short_time=True), sigma=24.0, h=12.8, block_step=2)
+ref_f = Oyster.Basic(clip, sup, short_time=False)
+ref_s = Oyster.Basic(clip, sup, short_time=True)
+clip = Oyster.Destaircase(clip, ref_f, sigma=24.0, block_step=2)
+clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=12.8, block_step=2)
 ```
 ![](http://i.imgur.com/Iw0wy79.png)
-![](http://i.imgur.com/FnbVo8p.png)
+![](http://i.imgur.com/RGbQNJ0.png)
 - Deblocking<br />
 ```python
 sup = Oyster.Super(clip)
-clip = Oyster.Deblocking(clip, Oyster.Basic(clip, sup, short_time=False), block_step=2)
-clip = Oyster.Deringing(clip, Oyster.Basic(clip, sup, short_time=True), sigma=24.0, h=10.8, block_step=2)
+ref_f = Oyster.Basic(clip, sup, short_time=False)
+ref_s = Oyster.Basic(clip, sup, short_time=True)
+clip = Oyster.Deblocking(clip, ref_f, block_step=2)
+clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=10.8, block_step=2)
 ```
 ![](http://i.imgur.com/CZzS4Ci.png)
-![](http://i.imgur.com/YmFQVCg.png)
+![](http://i.imgur.com/o6wgxH7.png)
 ![](http://i.imgur.com/kgksDfR.png)
-![](http://i.imgur.com/hHbHxxM.png)
+![](http://i.imgur.com/hjAoRuY.png)
