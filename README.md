@@ -158,7 +158,7 @@ clip = Oyster.Destaircase(clip, ref_f, sigma=24.0, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=12.8, block_step=2)
 ```
 ![](http://i.imgur.com/Iw0wy79.png)
-![]()
+![](http://i.imgur.com/Vi4125e.png)
 - Deblocking<br />
 ```python
 sup = Oyster.Super(clip)
