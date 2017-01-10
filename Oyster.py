@@ -103,7 +103,7 @@ class get_core:
 
 class internal:
       def super(core, src, pel):
-          src                  = core.Pad(src, 16, 16, 16, 16)
+          src                  = core.Pad(src, 128, 128, 128, 128)
           clip                 = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(src, **nnedi_args)), **nnedi_args))
           if pel == 4:
              clip              = core.Transpose(core.NNEDI(core.Transpose(core.NNEDI(clip, **nnedi_args)), **nnedi_args))
@@ -111,21 +111,27 @@ class internal:
 
       def basic(core, src, super, radius, pel, sad, short_time, color):
           plane                = 4 if color else 0
-          constant             = 0.0001989762736579584832432989326
-          rsad                 = constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))
-          src                  = core.Pad(src, 16, 16, 16, 16)
+          src                  = core.Pad(src, 128, 128, 128, 128)
           supersoft            = core.MSuper(src, pelclip=super, rfilter=4, pel=pel, chroma=color, **msuper_args)
           supersharp           = core.MSuper(src, pelclip=super, rfilter=2, pel=pel, chroma=color, **msuper_args)
           if short_time:
+             constant          = 0.0001989762736579584832432989326
+             me_sad            = [constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))]
+             me_sad           += [sad]
              vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=4, blksize=8, **manalyze_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=rsad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=1, blksize=2, thsad=sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=me_sad[0], **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=1, blksize=2, thsad=me_sad[1], **mrecalculate_args)
           else:
-             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=8, blksize=16, **manalyze_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=rsad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=sad, **mrecalculate_args)
+             constant          = 0.0000139144247313257680589719533
+             me_sad            = constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))
+             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=64, blksize=128, **manalyze_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=32, blksize=64, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=16, blksize=32, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=me_sad, **mrecalculate_args)
           clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, thscd1=1000000.0, thscd2=255.0, plane=plane)
-          clip                 = core.Crop(clip, 16, 16, 16, 16)
+          clip                 = core.Crop(clip, 128, 128, 128, 128)
           return clip
 
       def deringing(core, src, ref, radius, h, sigma, \
