@@ -98,7 +98,7 @@ workflow:
 - coarse BM3D refining (VBasic)
 - more delicate BM3D refining (VFinal)
 - replace macroblock boundaries in the source clip with the filtered result
-
+!
 ```python
 Destaircase(src, ref, radius=6, sigma=16.0, mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, thr=0.03125, elast=0.015625, lowpass=None)
 ```
@@ -152,7 +152,7 @@ clip = Oyster.Destaircase(clip, ref_f, sigma=24.0, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=12.8, block_step=2)
 ```
 ![](http://i.imgur.com/Iw0wy79.png)
-
+![](http://i.imgur.com/jNwnalf.png)
 - Deblocking + Deringing<br />
 ```python
 sup = Oyster.Super(clip)
