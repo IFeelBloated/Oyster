@@ -130,7 +130,7 @@ class internal:
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=me_sad, **mrecalculate_args)
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=me_sad, **mrecalculate_args)
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=me_sad, **mrecalculate_args)
-          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, thscd1=1000000.0, thscd2=255.0, plane=plane)
+          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, thscd1=16711680.0, thscd2=255.0, plane=plane)
           clip                 = core.Crop(clip, 128, 128, 128, 128)
           return clip
 
