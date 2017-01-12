@@ -105,7 +105,7 @@ Destaircase(src, ref, radius=6, sigma=16.0, mse=[None, None], hard_thr=3.2, bloc
 - thr<br />
   threshold of the limiter, ranges from 0.0 (no limit) to 1.0 (no filtering), differences between the basic estimation and source clip < thr will be discarded, otherwise remain unaffected.
 - elast<br />
-  elasticity of the threshold, ranges from 0.0 to thr.
+!  elasticity of the threshold, ranges from 0.0 to thr.
 
 ### Deblocking
 generally, Destaircase + Deringing combo is enough to typical blocking artifacts, this one works in extreme cases with severe blocking artifacts, it's fairly destructive since it's designed for extreme cases, **DON'T** use it unless you have to, and use it extra carefully
@@ -162,4 +162,4 @@ clip = Oyster.Deblocking(clip, ref_f, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=10.8, block_step=2)
 ```
 ![](http://i.imgur.com/CZzS4Ci.png)
-
+![](http://i.imgur.com/d1Jr9RL.png)
