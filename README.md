@@ -68,6 +68,7 @@ Basic(src, super=None, radius=6, pel=4, sad=2000.0, short_time=False)
 ### Deringing
 Deringing removes ringing (aka. mosquito noise) artifacts caused by lossy compression.<br />
 
+
 workflow:
 - replace low frequency components of the basic estimation with low frequencies from the source clip, since ringing is high frequency artifacts
 - coarse refining on basic estimation with BM3D (VBasic)
@@ -130,7 +131,7 @@ clip = Oyster.Destaircase(clip, ref_f, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, block_step=2)
 ```
 ![](http://i.imgur.com/Nn6LymV.png)
-
+![](http://i.imgur.com/sQg71IL.png)
 - Destaircase + Deringing (severe mosquito noise)<br />
 ```python
 sup = Oyster.Super(clip)
