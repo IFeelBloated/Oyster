@@ -6,6 +6,7 @@ fmtc_args                      = dict(fulls=True, fulld=True)
 msuper_args                    = dict(hpad=0, vpad=0, sharp=2, levels=0)
 manalyze_args                  = dict(search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
 mrecalculate_args              = dict(truemotion=False, search=3, smooth=1, divide=0, dct=0)
+mdegrain_args                  = dict(thscd1=16711680.0, thscd2=255.0)
 nnedi_args                     = dict(field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
 dfttest_args                   = dict(smode=0, sosize=0, tbsize=1, tosize=0, tmode=0)
 
@@ -130,7 +131,7 @@ class internal:
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=me_sad, **mrecalculate_args)
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=me_sad, **mrecalculate_args)
              vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=me_sad, **mrecalculate_args)
-          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, thscd1=16711680.0, thscd2=255.0, plane=plane)
+          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, plane=plane, **mdegrain_args)
           clip                 = core.Crop(clip, 128, 128, 128, 128)
           return clip
 
