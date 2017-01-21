@@ -193,7 +193,7 @@ class internal:
                      mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                      lowpass, color, matrix):
           mask                 = core.GenBlockMask(core.ShufflePlanes(src, 0, vs.GRAY))
-          cleansed             = core.NLMeans(ref, radius, block_size, 4, h, ref, color)
+          cleansed             = core.NLMeans(ref, radius, block_size, math.ceil(block_size / 2), h, ref, color)
           dif                  = core.MakeDiff(ref, cleansed)
           dif                  = core.BMBasic(dif, cleansed, radius=radius, th_mse=mse[0], hard_thr=hard_thr, sigma=sigma, \
                                               block_size=block_size, block_step=block_step, group_size=group_size, bm_range=bm_range, bm_step=bm_step, \
