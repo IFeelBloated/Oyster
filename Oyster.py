@@ -54,16 +54,15 @@ class get_core:
       def NLMeans(self, src, d, a, s, h, rclip, color):
           def duplicate(src):
               if d > 0:
-                 head          = src[0] * d
-                 tail          = src[src.num_frames - 1] * d
-                 clip          = head + src + tail
+                 blank         = self.Expr(src[0], "0.0") * d
+                 clip          = blank + src + blank
               else:
                  clip          = src
               return clip
-          pad                  = self.Pad(src, a+s, a+s, a+s, a+s)
+          pad                  = self.AddBorders(src, a+s, a+s, a+s, a+s)
           pad                  = duplicate(pad)
           if rclip is not None:
-             rclip             = self.Pad(rclip, a+s, a+s, a+s, a+s)
+             rclip             = self.AddBorders(rclip, a+s, a+s, a+s, a+s)
              rclip             = duplicate(rclip)
           nlm                  = self.KNLMeansCL(pad, d=d, a=a, s=s, h=h, cmode=color, wref=1.0, rclip=rclip)
           clip                 = self.Crop(nlm, a+s, a+s, a+s, a+s)
