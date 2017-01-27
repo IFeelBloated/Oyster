@@ -1,5 +1,5 @@
 # Oyster
-©2016 IFeelBloated, Oyster Python Module for VapourSynth
+©2017 IFeelBloated, Oyster Python Module for VapourSynth
 ## License
 LGPL v3.0
 ## Description
