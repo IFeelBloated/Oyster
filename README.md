@@ -61,7 +61,7 @@ Basic(src, super=None, radius=6, pel=4, sad=2000.0, short_time=False)
 - radius<br />
   temporal radius, frames that fall in [current frame - radius, current frame + radius] will be referenced
 - sad<br />
-  SAD threshold of the motion compensation, refer to the MVTools doc for more details
+  SAD threshold of the motion compensation, refer to MVTools doc for more details
 - short_time<br />
   with short_time = True, starts motion estimation at the block size of 8x8 and gradually refines it to 2x2 (optimized for maximum spatial resolution), short_time = False starts motion estimation at 128x128 and gradually refines it to 4x4 (optimized for maximum frequency resolution). short_time = True is meant for Deringing and short_time = False is for Destaircase and Deblocking
 
