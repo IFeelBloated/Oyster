@@ -137,10 +137,10 @@ class internal:
       def deringing(core, src, ref, radius, h, sigma, \
                     mse, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                     lowpass, color, matrix):
-          c1                   = 1.1396386205122096184557327136584
-          c2                   = 4.8995241035176996103733445761166
+          c1                   = 0.1134141984932795312503328847998
+          c2                   = 2.8623043756241389436528021745239
           strength             = [h]
-          strength            += [((math.exp(c1 * h) - 1.0) / (math.pow(h, h) / math.gamma(h + 1.0))) / c2]
+          strength            += [h * math.pow(c1 * h, c2) * math.log(1.0 + 1.0 / math.pow(c1 * h, c2))]
           strength            += [None]
           def loop(flt, init, src, n):
               strength[2]      = n * strength[0] / 4 + strength[1] * (1 - n / 4)
