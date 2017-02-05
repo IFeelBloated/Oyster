@@ -131,7 +131,7 @@ clip = Oyster.Destaircase(clip, ref_f, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, block_step=2)
 ```
 ![](http://i.imgur.com/Nn6LymV.png)
-![](http://i.imgur.com/sQg71IL.png)
+![]()
 - Destaircase + Deringing (severe mosquito noise)<br />
 ```python
 sup = Oyster.Super(clip)
@@ -141,7 +141,7 @@ clip = Oyster.Destaircase(clip, ref_f, block_step=2, lowpass="0.0:1024 1.0:1024"
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=12.8, block_step=2, lowpass="0.0:1024 1.0:1024")
 ```
 ![](http://i.imgur.com/jCDUuJa.png)
-![](http://i.imgur.com/S4bx4Ou.png)
+![]()
 - Destaircase + Deringing (H.264/H.265 compression artifacts)<br />
   *click the image and view at full size*
 ```python
@@ -152,7 +152,7 @@ clip = Oyster.Destaircase(clip, ref_f, sigma=24.0, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=12.8, block_step=2)
 ```
 ![](http://i.imgur.com/Iw0wy79.png)
-![](http://i.imgur.com/jNwnalf.png)
+![]()
 - Deblocking + Deringing<br />
 ```python
 sup = Oyster.Super(clip)
@@ -162,4 +162,4 @@ clip = Oyster.Deblocking(clip, ref_f, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=10.8, block_step=2)
 ```
 ![](http://i.imgur.com/CZzS4Ci.png)
-![](http://i.imgur.com/d1Jr9RL.png)
+![]()
