@@ -162,4 +162,4 @@ clip = Oyster.Deblocking(clip, ref_f, block_step=2)
 clip = Oyster.Deringing(clip, ref_s, sigma=24.0, h=10.8, block_step=2)
 ```
 ![](http://i.imgur.com/CZzS4Ci.png)
-![]()
+![](http://i.imgur.com/QYRQ3Si.png)
