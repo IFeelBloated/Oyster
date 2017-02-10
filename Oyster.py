@@ -64,7 +64,7 @@ class get_core:
           if rclip is not None:
              rclip             = self.AddBorders(rclip, a+s, a+s, a+s, a+s)
              rclip             = duplicate(rclip)
-          nlm                  = self.KNLMeansCL(pad, d=d, a=a, s=s, h=h, cmode=color, wref=1.0, rclip=rclip)
+          nlm                  = self.KNLMeansCL(pad, d=d, a=a, s=s, h=h, channels="YUV" if color else "Y", wref=1.0, rclip=rclip)
           clip                 = self.Crop(nlm, a+s, a+s, a+s, a+s)
           return clip[d:clip.num_frames - d]
 
