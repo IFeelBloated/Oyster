@@ -40,9 +40,9 @@ class get_core:
           self.ShufflePlanes   = self.core.std.ShufflePlanes
           self.SetFieldBased   = self.core.std.SetFieldBased
 
-      def FreqMerge(self, low, hi, sbsize, sstring):
-          hif                  = self.MakeDiff(hi, self.DFTTest(hi, sbsize=sbsize, sstring=sstring, **dfttest_args))
-          clip                 = self.MergeDiff(self.DFTTest(low, sbsize=sbsize, sstring=sstring, **dfttest_args), hif)
+      def FreqMerge(self, low, hi, sbsize, slocation):
+          hif                  = self.MakeDiff(hi, self.DFTTest(hi, sbsize=sbsize, slocation=slocation, **dfttest_args))
+          clip                 = self.MergeDiff(self.DFTTest(low, sbsize=sbsize, slocation=slocation, **dfttest_args), hif)
           return clip
 
       def Pad(self, src, left, right, top, bottom):
@@ -302,14 +302,14 @@ def Deringing(src, ref, radius=6, h=6.4, sigma=16.0, \
     for i in range(2):
         if not isinstance(mse[i], float) and not isinstance(mse[i], int) and mse[i] is not None:
            raise TypeError("Oyster.Deringing: elements in mse must be real numbers or None!")
-    if not isinstance(lowpass, str) and lowpass is not None:
-       raise TypeError("Oyster.Deringing: lowpass has to be a string or None!")
+    if not isinstance(lowpass, list) and lowpass is not None:
+       raise TypeError("Oyster.Deringing: lowpass has to be a list or None!")
     core                       = get_core()
     rgb                        = False
     color                      = True
     mse[0]                     = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
     mse[1]                     = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
-    lowpass                    = "0.0:{sigma} 0.48:1024.0 1.0:1024.0".format(sigma=sigma) if lowpass is None else lowpass
+    lowpass                    = [0.0,sigma, 0.48,1024.0, 1.0,1024.0] if lowpass is None else lowpass
     matrix                     = None
     colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
@@ -362,13 +362,13 @@ def Destaircase(src, ref, radius=6, sigma=16.0, \
        raise TypeError("Oyster.Destaircase: elast has to be a real number!")
     elif elast < 0 or elast > thr:
        raise RuntimeError("Oyster.Destaircase: elast has to fall in [0, thr]!")
-    if not isinstance(lowpass, str) and lowpass is not None:
-       raise TypeError("Oyster.Destaircase: lowpass has to be a string or None!")
+    if not isinstance(lowpass, list) and lowpass is not None:
+       raise TypeError("Oyster.Destaircase: lowpass has to be a list or None!")
     core                       = get_core()
     rgb                        = False
     mse[0]                     = sigma * 160.0 + 1200.0 if mse[0] is None else mse[0]
     mse[1]                     = sigma * 120.0 + 800.0 if mse[1] is None else mse[1]
-    lowpass                    = "0.0:{sigma} 0.48:1024.0 1.0:1024.0".format(sigma=sigma) if lowpass is None else lowpass
+    lowpass                    = [0.0,sigma, 0.48,1024.0, 1.0,1024.0] if lowpass is None else lowpass
     matrix                     = None
     colorspace                 = src.format.color_family
     if colorspace == vs.RGB:
@@ -387,7 +387,7 @@ def Destaircase(src, ref, radius=6, sigma=16.0, \
 
 def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
                mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
-               lowpass="0.0:0.0 0.12:1024.0 1.0:1024.0"):
+               lowpass=[0.0,0.0, 0.12,1024.0, 1.0,1024.0]):
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Deblocking: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
@@ -415,8 +415,8 @@ def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
     for i in range(2):
         if not isinstance(mse[i], float) and not isinstance(mse[i], int) and mse[i] is not None:
            raise TypeError("Oyster.Deblocking: elements in mse must be real numbers or None!")
-    if not isinstance(lowpass, str):
-       raise TypeError("Oyster.Deblocking: lowpass has to be a string!")
+    if not isinstance(lowpass, list):
+       raise TypeError("Oyster.Deblocking: lowpass has to be a list!")
     core                       = get_core()
     rgb                        = False
     color                      = True
