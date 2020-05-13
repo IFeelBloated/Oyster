@@ -387,7 +387,7 @@ def Destaircase(src, ref, radius=6, sigma=16.0, \
 
 def Deblocking(src, ref, radius=6, h=6.4, sigma=16.0, \
                mse=[None, None], hard_thr=3.2, block_size=8, block_step=1, group_size=32, bm_range=24, bm_step=1, ps_num=2, ps_range=8, ps_step=1, \
-               lowpass=lowpass=[0.0,0.0, 0.12,1024.0, 1.0,1024.0]):
+               lowpass=[0.0,0.0, 0.12,1024.0, 1.0,1024.0]):
     if not isinstance(src, vs.VideoNode):
        raise TypeError("Oyster.Deblocking: src has to be a video clip!")
     elif src.format.sample_type != vs.FLOAT or src.format.bits_per_sample < 32:
