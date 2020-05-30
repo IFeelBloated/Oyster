@@ -1,6 +1,5 @@
 import vapoursynth as vs
 import math
-import mvmulti
 
 fmtc_args                      = dict(fulls=True, fulld=True)
 msuper_args                    = dict(hpad=0, vpad=0, sharp=2, levels=0)
@@ -14,9 +13,9 @@ class get_core:
       def __init__(self):
           self.core            = vs.get_core()
           self.MSuper          = self.core.mvsf.Super
-          self.MAnalyze        = mvmulti.Analyze
-          self.MRecalculate    = mvmulti.Recalculate
-          self.MDegrainN       = mvmulti.DegrainN
+          self.MAnalyze        = self.core.mvsf.Analyze
+          self.MRecalculate    = self.core.mvsf.Recalculate
+          self.MDegrain        = self.core.mvsf.Degrain
           self.RGB2OPP         = self.core.bm3d.RGB2OPP
           self.OPP2RGB         = self.core.bm3d.OPP2RGB
           self.BMBasic         = self.core.bm3d.VBasic
@@ -118,19 +117,19 @@ class internal:
              constant          = 0.0001989762736579584832432989326
              me_sad            = [constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))]
              me_sad           += [sad]
-             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=4, blksize=8, **manalyze_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=me_sad[0], **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=1, blksize=2, thsad=me_sad[1], **mrecalculate_args)
+             vmulti            = core.MAnalyze(supersoft, radius=radius, chroma=color, overlap=4, blksize=8, **manalyze_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=2, blksize=4, thsad=me_sad[0], **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=1, blksize=2, thsad=me_sad[1], **mrecalculate_args)
           else:
              constant          = 0.0000139144247313257680589719533
              me_sad            = constant * math.pow(sad, 2.0) * math.log(1.0 + 1.0 / (constant * sad))
-             vmulti            = core.MAnalyze(supersoft, tr=radius, chroma=color, overlap=64, blksize=128, **manalyze_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=32, blksize=64, thsad=me_sad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=16, blksize=32, thsad=me_sad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=8, blksize=16, thsad=me_sad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=4, blksize=8, thsad=me_sad, **mrecalculate_args)
-             vmulti            = core.MRecalculate(supersoft, vmulti, tr=radius, chroma=color, overlap=2, blksize=4, thsad=me_sad, **mrecalculate_args)
-          clip                 = core.MDegrainN(src, supersharp, vmulti, tr=radius, thsad=sad, plane=plane, **mdegrain_args)
+             vmulti            = core.MAnalyze(supersoft, radius=radius, chroma=color, overlap=64, blksize=128, **manalyze_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=32, blksize=64, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=16, blksize=32, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=8, blksize=16, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=4, blksize=8, thsad=me_sad, **mrecalculate_args)
+             vmulti            = core.MRecalculate(supersoft, vmulti, chroma=color, overlap=2, blksize=4, thsad=me_sad, **mrecalculate_args)
+          clip                 = core.MDegrain(src, supersharp, vmulti, thsad=sad, plane=plane, **mdegrain_args)
           clip                 = core.Crop(clip, 128, 128, 128, 128)
           return clip
 
