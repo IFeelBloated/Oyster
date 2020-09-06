@@ -8,6 +8,7 @@ manalyze_args = dict(search=3, truemotion=False, trymany=True, levels=0, badrang
 mrecalculate_args = dict(truemotion=False, search=3, smooth=1, divide=0, dct=0)
 mdegrain_args = dict(thscd1=16320.0, thscd2=255.0)
 nnedi_args = dict(field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
+dfttest_args = dict(smode=0, sosize=0, tbsize=1, tosize=0, tmode=0)
 
 def CosineInterpolate(Begin, End, Step):
     def CurveStepDomain(x):
@@ -37,29 +38,103 @@ def _init():
     RegisterPlugin(core.std)
     RegisterPlugin(core.fmtc)
     RegisterPlugin(core.nnedi3)
+    RegisterPlugin(core.knlm)
+    RegisterPlugin(core.dfttest)
     RegisterPlugin(core.mvsf, lambda _, FilterName: 'M' + FilterName)
+    RegisterPlugin(core.bm3d, lambda _, FilterName: 'BM3D' + FilterName + 'Native')
 
 @Inject
-def Pad(self: VideoNode, left, right, top, bottom):
-    w = self.width
-    h = self.height
-    return self.resample(w + left + right, h + top + bottom, -left, -top, w + left + right, h + top + bottom, kernel = "point", **fmtc_args)
+def Mirror(self: VideoNode, left, right, top, bottom):
+    clip = self
+    vertical_filler = clip.FlipVertical()
+    if top > 0:
+        top_filler = vertical_filler.Crop(0, 0, vertical_filler.height - top - 1, 1)
+        clip = [top_filler, clip].StackVertical()
+    if bottom > 0:
+        bottom_filler = vertical_filler.Crop(0, 0, 1, vertical_filler.height - bottom - 1)
+        clip = [clip, bottom_filler].StackVertical()
+    horizontal_filler = clip.FlipHorizontal()
+    if left > 0:
+        left_filler = horizontal_filler.Crop(horizontal_filler.width - left - 1, 1, 0, 0)
+        clip = [left_filler, clip].StackHorizontal()
+    if right > 0:
+        right_filler = horizontal_filler.Crop(1, horizontal_filler.width - right - 1, 0, 0)
+        clip = [clip, right_filler].StackHorizontal()
+    return clip
 
 @Inject
 def TemporalMirror(self: VideoNode, radius):
-    head = self[1: 1 + radius].Reverse()
-    tail = self[self.num_frames - 1 - radius: self.num_frames - 1].Reverse()
-    return head + self + tail
+    if radius > 0:
+        head = self[1: 1 + radius].Reverse()
+        tail = self[self.num_frames - 1 - radius: self.num_frames - 1].Reverse()
+        return head + self + tail
+    else:
+        return self
+
+@Inject
+def NLMeans(self: VideoNode, d, a, s, h, rclip = None):
+    clip = self.Mirror(a + s, a + s, a + s, a + s).TemporalMirror(d)
+    rclip = rclip.Mirror(a + s, a + s, a + s, a + s).TemporalMirror(d) if rclip is not None else None
+    clip = clip.KNLMeansCL(d = d, a = a, s = s, h = h, channels = 'Y', wref = 1.0, rclip = rclip)
+    clip = clip.Crop(a + s, a + s, a + s, a + s)
+    return clip[d: clip.num_frames - d]
+
+@Inject
+def BM3DBasic(self: VideoNode, ref, **kw):
+    block_size = kw['block_size']
+    radius = kw['radius']
+    clip = self.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius)
+    ref = ref.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius) if ref is not None else None
+    clip = clip.BM3DVBasicNative(ref, **kw).BM3DVAggregateNative(radius, 1)
+    clip = clip.Crop(block_size, block_size, block_size, block_size)
+    return clip[radius: clip.num_frames - radius]
+
+@Inject
+def BM3DFinal(self: VideoNode, ref, wref, **kw):
+    block_size = kw['block_size']
+    radius = kw['radius']
+    clip = self.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius)
+    ref = ref.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius)
+    wref = wref.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius) if wref is not None else None
+    clip = clip.BM3DVFinalNative(ref, wref, **kw).BM3DVAggregateNative(radius, 1)
+    clip = clip.Crop(block_size, block_size, block_size, block_size)
+    return clip[radius: clip.num_frames - radius]
+
+@Inject
+def DrawMacroblockMask(self: VideoNode, left = 0, right = 0, top = 0, bottom = 0):
+    ref_width = self.width + left + right
+    ref_height = self.height + top + bottom
+    clip = self.BlankClip(24, 24, color = 0.0)
+    clip = clip.AddBorders(4, 4, 4, 4, color = 1.0)
+    clip = [clip, clip, clip, clip].StackHorizontal()
+    clip = [clip, clip, clip, clip].StackVertical()
+    clip = clip.resample(32, 32, kernel="point", **fmtc_args)
+    clip = clip.Expr("x 0 > 1 0 ?")
+    h_extend = [clip] * (ref_width // 32 + 1)
+    clip = h_extend.StackHorizontal()
+    v_extend = [clip] * (ref_height // 32 + 1)
+    clip = v_extend.StackVertical()
+    clip = clip.CropAbs(ref_width, ref_height, 0, 0)
+    return clip.Crop(left, right, top, bottom)
+
+@Inject
+def ReplaceHighFrequencyComponent(self: VideoNode, ref, sbsize, slocation):
+    clip = self.Mirror(sbsize, sbsize, sbsize, sbsize)
+    ref = ref.Mirror(sbsize, sbsize, sbsize, sbsize)
+    low_freq = clip.DFTTest(sbsize = sbsize, slocation = slocation, **dfttest_args)
+    high_freq = ref.MakeDiff(ref.DFTTest(sbsize = sbsize, slocation = slocation, **dfttest_args))
+    clip = low_freq.MergeDiff(high_freq)
+    return clip.Crop(sbsize, sbsize, sbsize, sbsize)
 
 def _super(clip, pel):
-    clip = clip.Pad(64, 64, 64, 64)
+    clip = clip.Mirror(64, 64, 64, 64)
     clip = clip.nnedi3(**nnedi_args).Transpose().nnedi3(**nnedi_args).Transpose()
     if pel == 4:
         clip = clip.nnedi3(**nnedi_args).Transpose().nnedi3(**nnedi_args).Transpose()
     return clip
 
 def _basic(clip, superclip, radius, pel, sad, me_sad_upperbound, me_sad_lowerbound):
-    clip = clip.Pad(64, 64, 64, 64).TemporalMirror(radius)
+    clip = clip.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     superclip = superclip.TemporalMirror(radius) if superclip is not None else None
     me_sad = CosineInterpolate(me_sad_lowerbound, me_sad_upperbound, 3)
     me_super = clip.MSuper(pelclip=superclip, rfilter=4, pel=pel, **msuper_args)
