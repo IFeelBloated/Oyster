@@ -85,7 +85,11 @@ def BM3DBasic(self: VideoNode, ref, **kw):
     radius = kw['radius']
     clip = self.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius)
     ref = ref.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius) if ref is not None else None
-    clip = clip.BM3DVBasicNative(ref, **kw).BM3DVAggregateNative(radius, 1)
+    if radius > 0:
+        clip = clip.BM3DVBasicNative(ref, **kw).BM3DVAggregateNative(radius, 1)
+    else:
+        del kw['radius']
+        clip = clip.BM3DBasicNative(ref, **kw)
     clip = clip.Crop(block_size, block_size, block_size, block_size)
     return clip[radius: clip.num_frames - radius]
 
@@ -96,7 +100,11 @@ def BM3DFinal(self: VideoNode, ref, wref, **kw):
     clip = self.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius)
     ref = ref.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius)
     wref = wref.Mirror(block_size, block_size, block_size, block_size).TemporalMirror(radius) if wref is not None else None
-    clip = clip.BM3DVFinalNative(ref, wref, **kw).BM3DVAggregateNative(radius, 1)
+    if radius > 0:
+        clip = clip.BM3DVFinalNative(ref, wref, **kw).BM3DVAggregateNative(radius, 1)
+    else:
+        del kw['radius']
+        clip = clip.BM3DFinalNative(ref, wref, **kw)
     clip = clip.Crop(block_size, block_size, block_size, block_size)
     return clip[radius: clip.num_frames - radius]
 
@@ -126,77 +134,52 @@ def ReplaceHighFrequencyComponent(self: VideoNode, ref, sbsize, slocation):
     clip = low_freq.MergeDiff(high_freq)
     return clip.Crop(sbsize, sbsize, sbsize, sbsize)
 
-def _super(clip, pel):
-    clip = clip.Mirror(64, 64, 64, 64)
-    clip = clip.nnedi3(**nnedi_args).Transpose().nnedi3(**nnedi_args).Transpose()
+@Inject
+def ScanMotionVectors(self: VideoNode, superclip, radius, pel, me_sad_upperbound, me_sad_lowerbound, searchparam):
+    me_sad = CosineInterpolate(me_sad_lowerbound, me_sad_upperbound, 3)
+    clip = self.MSuper(pelclip=superclip, rfilter=4, pel=pel, **msuper_args)
+    vec = clip.MAnalyze(radius=radius, overlap=32, blksize=64, searchparam=searchparam, **manalyze_args)
+    vec = clip.MRecalculate(vec, overlap=16, blksize=32, searchparam=searchparam*2, thsad=me_sad[0], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap=8, blksize=16, searchparam=searchparam*4, thsad=me_sad[1], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap=4, blksize=8, searchparam=searchparam*8, thsad=me_sad[2], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap=2, blksize=4, searchparam=searchparam*16, thsad=me_sad[3], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap=1, blksize=2, searchparam=searchparam*32, thsad=me_sad[4], **mrecalculate_args)
+    return vec
+
+@Inject
+def MSupersample(self: VideoNode, pel):
+    if pel == 1:
+        return None
+    clip = self.nnedi3(**nnedi_args).Transpose().nnedi3(**nnedi_args).Transpose()
     if pel == 4:
         clip = clip.nnedi3(**nnedi_args).Transpose().nnedi3(**nnedi_args).Transpose()
     return clip
 
-def _basic(clip, superclip, radius, pel, sad, me_sad_upperbound, me_sad_lowerbound):
-    clip = clip.Mirror(64, 64, 64, 64).TemporalMirror(radius)
-    superclip = superclip.TemporalMirror(radius) if superclip is not None else None
-    me_sad = CosineInterpolate(me_sad_lowerbound, me_sad_upperbound, 3)
-    me_super = clip.MSuper(pelclip=superclip, rfilter=4, pel=pel, **msuper_args)
-    degrain_super = clip.MSuper(pelclip=superclip, rfilter=2, pel=pel, **msuper_args)
-    vec = me_super.MAnalyze(radius=radius, overlap=32, blksize=64, searchparam=4, **manalyze_args)
-    vec = me_super.MRecalculate(vec, overlap=16, blksize=32, searchparam=8, thsad=me_sad[0], **mrecalculate_args)
-    vec = me_super.MRecalculate(vec, overlap=8, blksize=16, searchparam=16, thsad=me_sad[1], **mrecalculate_args)
-    vec = me_super.MRecalculate(vec, overlap=4, blksize=8, searchparam=32, thsad=me_sad[2], **mrecalculate_args)
-    vec = me_super.MRecalculate(vec, overlap=2, blksize=4, searchparam=64, thsad=me_sad[3], **mrecalculate_args)
-    vec = me_super.MRecalculate(vec, overlap=1, blksize=2, searchparam=128, thsad=me_sad[4], **mrecalculate_args)
-    clip = clip.MDegrain(degrain_super, vec, thsad=sad, **mdegrain_args)
-    clip = clip.Crop(64, 64, 64, 64)
+@Inject
+def OysterBasicSpatial(self: VideoNode, sigma, sigma2, mse, mse2, **kw):
+    ref = self.BM3DBasic(self, radius = 0, sigma = sigma, th_mse = mse, **kw)
+    if 'hard_thr' in kw:
+        del kw['hard_thr']
+    return self.BM3DFinal(ref, ref, radius = 0, sigma = sigma2, th_mse = mse2, **kw)
+
+@Inject
+def OysterBasicTemporal(self: VideoNode, src, superclip, supersrc, radius, pel, sad, **kw):
+    degrain_super = src.MSuper(pelclip=supersrc, rfilter=2, pel=pel, **msuper_args)
+    vec = self.ScanMotionVectors(superclip, radius, pel, **kw)
+    return self.MDegrain(degrain_super, vec, thsad=sad, **mdegrain_args)
+
+@Inject
+def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
+                mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, \
+                pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam):
+    spatial_args = {'hard_thr': hard_thr, 'block_size': block_size, \
+                    'block_step': block_step, 'group_size': group_size, \
+                    'bm_range': bm_range, 'bm_step': bm_step}
+    temporal_args = {'me_sad_upperbound': me_sad_upperbound, 'me_sad_lowerbound': me_sad_lowerbound, \
+                     'searchparam': searchparam}
+    clip = self.OysterBasicSpatial(sigma, sigma2, mse, mse2, **spatial_args).Mirror(64, 64, 64, 64).TemporalMirror(radius)
+    src = self.Mirror(64, 64, 64, 64).TemporalMirror(radius)
+    superclip = clip.MSupersample(pel)
+    supersrc = src.MSupersample(pel)
+    clip = clip.OysterBasicTemporal(src, superclip, supersrc, radius, pel, sad, **temporal_args).Crop(64, 64, 64, 64)
     return clip[radius: clip.num_frames - radius]
-
-def Super(clip, pel = 4):
-    if not isinstance(clip, VideoNode):
-       raise TypeError("Oyster.Super: clip has to be a video clip!")
-    elif clip.format.sample_type != FLOAT or clip.format.bits_per_sample < 32:
-       raise TypeError("Oyster.Super: clip has to be of fp32 sample type!")  
-    elif clip.format.color_family != GRAY:
-       raise RuntimeError("Oyster.Super: clip has to be of GRAY format!")
-    if not isinstance(pel, int):
-       raise TypeError("Oyster.Super: pel has to be an integer!")
-    elif pel != 2 and pel != 4:
-       raise RuntimeError("Oyster.Super: pel has to be 2 or 4!")
-    _init()
-    return _super(clip.SetFieldBased(0), pel)
-
-def Basic(clip, superclip = None, radius = 6, pel = 4, sad = 2000.0, me_sad_upperbound = None, me_sad_lowerbound = None):
-    if not isinstance(clip, VideoNode):
-       raise TypeError("Oyster.Basic: clip has to be a video clip!")
-    elif clip.format.sample_type != FLOAT or clip.format.bits_per_sample < 32:
-       raise TypeError("Oyster.Basic: clip has to be of fp32 sample type!")  
-    elif clip.format.color_family != GRAY:
-       raise RuntimeError("Oyster.Basic: clip has to be of GRAY format!")
-    if not isinstance(superclip, VideoNode) and superclip is not None:
-       raise TypeError("Oyster.Basic: superclip has to be a video clip or None!")
-    if not isinstance(radius, int):
-       raise TypeError("Oyster.Basic: radius has to be an integer!")
-    elif radius < 1:
-       raise RuntimeError("Oyster.Basic: radius has to be greater than 0!")
-    if not isinstance(pel, int):
-       raise TypeError("Oyster.Basic: pel has to be an integer!")
-    elif pel != 1 and pel != 2 and pel != 4:
-       raise RuntimeError("Oyster.Basic: pel has to be 1, 2 or 4!")
-    if not isinstance(sad, float) and not isinstance(sad, int):
-       raise TypeError("Oyster.Basic: sad has to be a real number!")
-    elif sad <= 0.0:
-       raise RuntimeError("Oyster.Basic: sad has to be greater than 0!")
-    if not isinstance(me_sad_upperbound, float) and not isinstance(me_sad_upperbound, int) and me_sad_upperbound is not None:
-       raise TypeError("Oyster.Basic: me_sad_upperbound has to be a real number or None!")
-    if not isinstance(me_sad_lowerbound, float) and not isinstance(me_sad_lowerbound, int) and me_sad_lowerbound is not None:
-       raise TypeError("Oyster.Basic: me_sad_lowerbound has to be a real number or None!")
-    me_sad_upperbound_scale = 1.008813680481376593785917212998847e-4
-    me_sad_upperbound_multiplier = 2.850430470333669346825602033848576e-1
-    me_sad_lowerbound_alpha = 1.660188324841596071680847806086676e-2
-    me_sad_lowerbound_beta = 3.584988203141424006506363885606282e-1
-    _init()
-    if superclip is not None:
-        superclip = superclip.SetFieldBased(0)
-    if me_sad_upperbound is None:
-        me_sad_upperbound = ConvexAttenuate(sad, me_sad_upperbound_scale, me_sad_upperbound_multiplier)
-    if me_sad_lowerbound is None:
-        me_sad_lowerbound = ConcaveAttenuate(me_sad_upperbound, me_sad_lowerbound_alpha, me_sad_lowerbound_beta)
-    return _basic(clip.SetFieldBased(0), superclip, radius, pel, sad, me_sad_upperbound, me_sad_lowerbound)
