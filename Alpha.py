@@ -2,13 +2,13 @@ from vapoursynth import *
 from VaporMagik import *
 import math
 
-fmtc_args = dict(fulls=True, fulld=True)
-msuper_args = dict(hpad=0, vpad=0, sharp=2, levels=0)
-manalyze_args = dict(search=3, truemotion=False, trymany=True, levels=0, badrange=-24, divide=0, dct=0)
-mrecalculate_args = dict(truemotion=False, search=3, smooth=1, divide=0, dct=0)
-mdegrain_args = dict(thscd1=16320.0, thscd2=255.0)
-nnedi_args = dict(field=1, dh=True, nns=4, qual=2, etype=1, nsize=0)
-dfttest_args = dict(smode=0, sosize=0, tbsize=1, tosize=0, tmode=0)
+fmtc_args = {'fulls': True, 'fulld': True}
+msuper_args = {'hpad': 0, 'vpad': 0, 'sharp': 2, 'levels': 0}
+manalyze_args = {'search': 3, 'truemotion': False, 'trymany': True, 'levels': 0, 'badrange': -24, 'divide': 0, 'dct': 0}
+mrecalculate_args = {'truemotion': False, 'search': 3, 'smooth': 1, 'divide': 0, 'dct': 0}
+mdegrain_args = {'thscd1': 16320.0, 'thscd2': 255.0}
+nnedi_args = {'field': 1, 'dh': True, 'nns': 4, 'qual': 2, 'etype': 1, 'nsize': 0}
+dfttest_args = {'smode': 0, 'sosize': 0, 'tbsize': 1, 'tosize': 0, 'tmode': 0}
 
 def CosineInterpolate(Begin, End, Step):
     def CurveStepDomain(x):
@@ -109,21 +109,21 @@ def BM3DFinal(self: VideoNode, ref, wref, **kw):
     return clip[radius: clip.num_frames - radius]
 
 @Inject
-def DrawMacroblockMask(self: VideoNode, left = 0, right = 0, top = 0, bottom = 0):
-    ref_width = self.width + left + right
-    ref_height = self.height + top + bottom
+def DrawMacroblockMask(self: VideoNode, left = 0, top = 0):
+    ref_width = self.width + left
+    ref_height = self.height + top
     clip = self.BlankClip(24, 24, color = 0.0)
     clip = clip.AddBorders(4, 4, 4, 4, color = 1.0)
     clip = [clip, clip, clip, clip].StackHorizontal()
     clip = [clip, clip, clip, clip].StackVertical()
-    clip = clip.resample(32, 32, kernel="point", **fmtc_args)
+    clip = clip.resample(32, 32, kernel = "point", **fmtc_args)
     clip = clip.Expr("x 0 > 1 0 ?")
     h_extend = [clip] * (ref_width // 32 + 1)
     clip = h_extend.StackHorizontal()
     v_extend = [clip] * (ref_height // 32 + 1)
     clip = v_extend.StackVertical()
     clip = clip.CropAbs(ref_width, ref_height, 0, 0)
-    return clip.Crop(left, right, top, bottom)
+    return clip.Crop(left, 0, top, 0)
 
 @Inject
 def ReplaceHighFrequencyComponent(self: VideoNode, ref, sbsize, slocation):
@@ -137,13 +137,13 @@ def ReplaceHighFrequencyComponent(self: VideoNode, ref, sbsize, slocation):
 @Inject
 def ScanMotionVectors(self: VideoNode, superclip, radius, pel, me_sad_upperbound, me_sad_lowerbound, searchparam):
     me_sad = CosineInterpolate(me_sad_lowerbound, me_sad_upperbound, 3)
-    clip = self.MSuper(pelclip=superclip, rfilter=4, pel=pel, **msuper_args)
-    vec = clip.MAnalyze(radius=radius, overlap=32, blksize=64, searchparam=searchparam, **manalyze_args)
-    vec = clip.MRecalculate(vec, overlap=16, blksize=32, searchparam=searchparam*2, thsad=me_sad[0], **mrecalculate_args)
-    vec = clip.MRecalculate(vec, overlap=8, blksize=16, searchparam=searchparam*4, thsad=me_sad[1], **mrecalculate_args)
-    vec = clip.MRecalculate(vec, overlap=4, blksize=8, searchparam=searchparam*8, thsad=me_sad[2], **mrecalculate_args)
-    vec = clip.MRecalculate(vec, overlap=2, blksize=4, searchparam=searchparam*16, thsad=me_sad[3], **mrecalculate_args)
-    vec = clip.MRecalculate(vec, overlap=1, blksize=2, searchparam=searchparam*32, thsad=me_sad[4], **mrecalculate_args)
+    clip = self.MSuper(pelclip = superclip, rfilter = 4, pel = pel, **msuper_args)
+    vec = clip.MAnalyze(radius = radius, overlap = 32, blksize = 64, searchparam = searchparam, **manalyze_args)
+    vec = clip.MRecalculate(vec, overlap = 16, blksize = 32, searchparam = searchparam * 2, thsad = me_sad[0], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap = 8, blksize = 16, searchparam = searchparam * 4, thsad = me_sad[1], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap = 4, blksize = 8, searchparam = searchparam * 8, thsad = me_sad[2], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap = 2, blksize = 4, searchparam = searchparam * 16, thsad = me_sad[3], **mrecalculate_args)
+    vec = clip.MRecalculate(vec, overlap = 1, blksize = 2, searchparam = searchparam * 32, thsad = me_sad[4], **mrecalculate_args)
     return vec
 
 @Inject
@@ -164,9 +164,9 @@ def OysterBasicSpatial(self: VideoNode, sigma, sigma2, mse, mse2, **kw):
 
 @Inject
 def OysterBasicTemporal(self: VideoNode, src, superclip, supersrc, radius, pel, sad, **kw):
-    degrain_super = src.MSuper(pelclip=supersrc, rfilter=2, pel=pel, **msuper_args)
+    degrain_super = src.MSuper(pelclip = supersrc, rfilter = 2, pel = pel, **msuper_args)
     vec = self.ScanMotionVectors(superclip, radius, pel, **kw)
-    return self.MDegrain(degrain_super, vec, thsad=sad, **mdegrain_args)
+    return self.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args)
 
 @Inject
 def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
@@ -183,3 +183,20 @@ def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
     supersrc = src.MSupersample(pel)
     clip = clip.OysterBasicTemporal(src, superclip, supersrc, radius, pel, sad, **temporal_args).Crop(64, 64, 64, 64)
     return clip[radius: clip.num_frames - radius]
+
+@Inject
+def OysterDeblock(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
+                  mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
+                  sbsize, slocation, crop_left, crop_top):
+    bm3d_args = {'block_size': block_size, 'block_step': block_step, \
+                 'group_size': group_size, 'bm_range': bm_range, \
+                 'bm_step': bm_step, 'ps_num': ps_num, 'ps_range': ps_range, 'ps_step': ps_step}
+    mask = self.DrawMacroblockMask(crop_left, crop_top)  
+    cleansed = ref.NLMeans(radius, a, s, h)
+    dif = self.MakeDiff(cleansed)
+    ref_dif = dif.BM3DBasic(cleansed, radius = radius, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **bm3d_args)
+    ref = cleansed.MergeDiff(ref_dif)
+    dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = sigma2, th_mse = mse2, **bm3d_args)
+    clean = cleansed.MergeDiff(dif)
+    clip = clean.ReplaceHighFrequencyComponent(self, sbsize, slocation)
+    return clip.MaskedMerge(clean, mask)
