@@ -185,7 +185,7 @@ def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
     return clip[radius: clip.num_frames - radius]
 
 @Inject
-def OysterDeblock(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
+def OysterDeblocking(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
                   mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                   sbsize, slocation, crop_left, crop_top):
     bm3d_args = {'block_size': block_size, 'block_step': block_step, \
@@ -200,3 +200,34 @@ def OysterDeblock(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
     clean = cleansed.MergeDiff(dif)
     clip = clean.ReplaceHighFrequencyComponent(self, sbsize, slocation)
     return clip.MaskedMerge(clean, mask)
+
+@Inject
+def RestoreHighFrequencyComponent(self: VideoNode, src, h_upperbound, h_lowerbound):
+    def Refine(ref, a, h):
+        dif = src.MakeDiff(ref).NLMeans(0, a, 1, h, ref)
+        return ref.MergeDiff(dif)
+    h = CosineInterpolate(h_upperbound, h_lowerbound, 3)
+    ref = Refine(self, 2, h[0])
+    ref = Refine(ref, 4, h[1])
+    ref = Refine(ref, 8, h[2])
+    ref = Refine(ref, 16, h[3])
+    return Refine(ref, 32, h[4])
+
+@Inject
+def OysterDeringing(self: VideoNode, ref, radius, sigma, sigma2, mse, mse2, \
+                    hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
+                    h_upperbound, h_lowerbound, \
+                    refine_sigma, refine_sigma2, refine_mse, refine_mse2, refine_hard_thr, \
+                    sbsize, slocation):
+    bm3d_args = {'block_size': block_size, 'block_step': block_step, \
+                 'group_size': group_size, 'bm_range': bm_range, \
+                 'bm_step': bm_step, 'ps_num': ps_num, 'ps_range': ps_range, 'ps_step': ps_step}
+    cleansed_basic = ref.BM3DBasic(ref, radius = radius, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **bm3d_args)
+    cleansed = ref.BM3DFinal(cleansed_basic, cleansed_basic, radius = radius, sigma = sigma2, th_mse = mse2, **bm3d_args)
+    cleansed = cleansed.RestoreHighFrequencyComponent(self, h_upperbound, h_lowerbound)
+    dif = self.MakeDiff(cleansed)
+    ref_dif = dif.BM3DBasic(cleansed, radius = radius, sigma = refine_sigma, th_mse = refine_mse, hard_thr = refine_hard_thr, **bm3d_args)
+    ref = cleansed.MergeDiff(ref_dif)
+    dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = refine_sigma2, th_mse = refine_mse2, **bm3d_args)
+    clean = cleansed.MergeDiff(dif)
+    return self.ReplaceHighFrequencyComponent(clean, sbsize, slocation)
