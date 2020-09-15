@@ -231,3 +231,24 @@ def OysterDeringing(self: VideoNode, ref, radius, sigma, sigma2, mse, mse2, \
     dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = refine_sigma2, th_mse = refine_mse2, **bm3d_args)
     clean = cleansed.MergeDiff(dif)
     return self.ReplaceHighFrequencyComponent(clean, sbsize, slocation)
+
+@Inject
+def OysterDecombingSpatial(self: VideoNode, p):
+    clip = self
+    for _ in range(p):
+        clip = clip.nnedi3(**nnedi_args).resample(self.width, self.height, sx = 0, sy = -0.5, kernel = "gauss", a1 = 100, **fmtc_args)
+    return clip
+
+@Inject
+def OysterDecombing(self: VideoNode, radius, p, p2, \
+                    pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam):
+    prefiltered = self.OysterDecombingSpatial(p).Mirror(64, 64, 64, 64).TemporalMirror(radius)
+    clip = self.Mirror(64, 64, 64, 64).TemporalMirror(radius)
+    superprefiltered = prefiltered.MSupersample(pel)
+    superclip = clip.MSupersample(pel)
+    degrain_super = clip.MSuper(pelclip = superclip, rfilter = 2, pel = pel, **msuper_args)
+    vec = prefiltered.ScanMotionVectors(superprefiltered, radius, pel, me_sad_upperbound, me_sad_lowerbound, searchparam)
+    clip = clip.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args).Crop(64, 64, 64, 64)
+    clip = clip[radius: clip.num_frames - radius]
+    dif = self.MakeDiff(clip).OysterDecombingSpatial(p2)
+    return clip.MergeDiff(dif)
