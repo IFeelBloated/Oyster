@@ -156,48 +156,51 @@ def MSupersample(self: VideoNode, pel):
     return clip
 
 @Inject
-def OysterBasicSpatial(self: VideoNode, sigma, sigma2, mse, mse2, **kw):
-    ref = self.BM3DBasic(self, radius = 0, sigma = sigma, th_mse = mse, **kw)
-    if 'hard_thr' in kw:
-        del kw['hard_thr']
-    return self.BM3DFinal(ref, ref, radius = 0, sigma = sigma2, th_mse = mse2, **kw)
-
-@Inject
-def OysterBasicTemporal(self: VideoNode, src, superclip, supersrc, radius, pel, sad, **kw):
-    degrain_super = src.MSuper(pelclip = supersrc, rfilter = 2, pel = pel, **msuper_args)
-    vec = self.ScanMotionVectors(superclip, radius, pel, **kw)
-    return self.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args)
-
-@Inject
 def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
                 mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, \
-                pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam):
-    spatial_args = {'hard_thr': hard_thr, 'block_size': block_size, \
+                pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam, \
+                breakdown):
+    spatial_args = {'block_size': block_size, \
                     'block_step': block_step, 'group_size': group_size, \
                     'bm_range': bm_range, 'bm_step': bm_step}
     temporal_args = {'me_sad_upperbound': me_sad_upperbound, 'me_sad_lowerbound': me_sad_lowerbound, \
                      'searchparam': searchparam}
-    clip = self.OysterBasicSpatial(sigma, sigma2, mse, mse2, **spatial_args).Mirror(64, 64, 64, 64).TemporalMirror(radius)
+    ref = self.BM3DBasic(self, radius = 0, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **spatial_args)
+    if breakdown.lower() == 'spatialbasic':
+        return ref
+    clip = self.BM3DFinal(ref, ref, radius = 0, sigma = sigma2, th_mse = mse2, **spatial_args)
+    if breakdown.lower() == 'spatialfinal':
+        return clip
+    clip = clip.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     src = self.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     superclip = clip.MSupersample(pel)
     supersrc = src.MSupersample(pel)
-    clip = clip.OysterBasicTemporal(src, superclip, supersrc, radius, pel, sad, **temporal_args).Crop(64, 64, 64, 64)
+    degrain_super = src.MSuper(pelclip = supersrc, rfilter = 2, pel = pel, **msuper_args)
+    vec = clip.ScanMotionVectors(superclip, radius, pel, **temporal_args)
+    clip = clip.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args).Crop(64, 64, 64, 64)
     return clip[radius: clip.num_frames - radius]
 
 @Inject
 def OysterDeblocking(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
                   mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
-                  sbsize, slocation, crop_left, crop_top):
+                  sbsize, slocation, crop_left, crop_top, \
+                  breakdown):
     bm3d_args = {'block_size': block_size, 'block_step': block_step, \
                  'group_size': group_size, 'bm_range': bm_range, \
                  'bm_step': bm_step, 'ps_num': ps_num, 'ps_range': ps_range, 'ps_step': ps_step}
     mask = self.DrawMacroblockMask(crop_left, crop_top)  
     cleansed = ref.NLMeans(radius, a, s, h)
+    if breakdown.lower() == 'cleanse':
+        return cleansed
     dif = self.MakeDiff(cleansed)
     ref_dif = dif.BM3DBasic(cleansed, radius = radius, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **bm3d_args)
     ref = cleansed.MergeDiff(ref_dif)
+    if breakdown.lower() == 'refinebasic':
+        return ref
     dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = sigma2, th_mse = mse2, **bm3d_args)
     clean = cleansed.MergeDiff(dif)
+    if breakdown.lower() == 'refinefinal':
+        return clean
     clip = clean.ReplaceHighFrequencyComponent(self, sbsize, slocation)
     return clip.MaskedMerge(clean, mask)
 
@@ -218,18 +221,28 @@ def OysterDeringing(self: VideoNode, ref, radius, sigma, sigma2, mse, mse2, \
                     hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                     h_upperbound, h_lowerbound, \
                     refine_sigma, refine_sigma2, refine_mse, refine_mse2, refine_hard_thr, \
-                    sbsize, slocation):
+                    sbsize, slocation, breakdown):
     bm3d_args = {'block_size': block_size, 'block_step': block_step, \
                  'group_size': group_size, 'bm_range': bm_range, \
                  'bm_step': bm_step, 'ps_num': ps_num, 'ps_range': ps_range, 'ps_step': ps_step}
     cleansed_basic = ref.BM3DBasic(ref, radius = radius, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **bm3d_args)
+    if breakdown.lower() == 'cleansebasic':
+        return cleansed_basic
     cleansed = ref.BM3DFinal(cleansed_basic, cleansed_basic, radius = radius, sigma = sigma2, th_mse = mse2, **bm3d_args)
+    if breakdown.lower() == 'cleansefinal':
+        return cleansed
     cleansed = cleansed.RestoreHighFrequencyComponent(self, h_upperbound, h_lowerbound)
+    if breakdown.lower() == 'restore':
+        return cleansed
     dif = self.MakeDiff(cleansed)
     ref_dif = dif.BM3DBasic(cleansed, radius = radius, sigma = refine_sigma, th_mse = refine_mse, hard_thr = refine_hard_thr, **bm3d_args)
     ref = cleansed.MergeDiff(ref_dif)
+    if breakdown.lower() == 'refinebasic':
+        return ref
     dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = refine_sigma2, th_mse = refine_mse2, **bm3d_args)
     clean = cleansed.MergeDiff(dif)
+    if breakdown.lower() == 'refinefinal':
+        return clean
     return self.ReplaceHighFrequencyComponent(clean, sbsize, slocation)
 
 @Inject
@@ -241,8 +254,12 @@ def OysterDecombingSpatial(self: VideoNode, p):
 
 @Inject
 def OysterDecombing(self: VideoNode, radius, p, p2, \
-                    pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam):
-    prefiltered = self.OysterDecombingSpatial(p).Mirror(64, 64, 64, 64).TemporalMirror(radius)
+                    pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam, \
+                    breakdown):
+    prefiltered = self.OysterDecombingSpatial(p)
+    if breakdown.lower() == 'prefilter':
+        return prefiltered
+    prefiltered = prefiltered.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     clip = self.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     superprefiltered = prefiltered.MSupersample(pel)
     superclip = clip.MSupersample(pel)
@@ -250,5 +267,7 @@ def OysterDecombing(self: VideoNode, radius, p, p2, \
     vec = prefiltered.ScanMotionVectors(superprefiltered, radius, pel, me_sad_upperbound, me_sad_lowerbound, searchparam)
     clip = clip.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args).Crop(64, 64, 64, 64)
     clip = clip[radius: clip.num_frames - radius]
+    if breakdown.lower() == 'compensate':
+        return clip
     dif = self.MakeDiff(clip).OysterDecombingSpatial(p2)
     return clip.MergeDiff(dif)
