@@ -1,6 +1,7 @@
 from vapoursynth import *
 from VaporMagik import *
 import math
+import os
 
 fmtc_args = {'fulls': True, 'fulld': True}
 msuper_args = {'hpad': 0, 'vpad': 0, 'sharp': 2, 'levels': 0}
@@ -42,6 +43,29 @@ def _init():
     RegisterPlugin(core.dfttest)
     RegisterPlugin(core.mvsf, lambda _, FilterName: 'M' + FilterName)
     RegisterPlugin(core.bm3d, lambda _, FilterName: 'BM3D' + FilterName + 'Native')
+    RegisterPlugin(core.raws, lambda _, FilterName: 'Raw' + FilterName)
+
+@Inject
+def Materialize(self: VideoNode, filename, identifier):
+    cache_dir = os.path.dirname(__script__) + '/Cache'
+    cache_path = cache_dir + '/' + filename
+    width = self.get_frame(0).width
+    height = self.get_frame(0).height
+    fmt = 'GRAYS' if self.format.bits_per_sample == 32 else 'GRAY8'
+    self.CropAbs(width = width, height = height).set_output(identifier)
+    if not os.path.exists(cache_path):
+        if not os.path.exists(cache_dir):
+            os.mkdir(cache_dir)
+        os.system(f'vspipe -o {identifier} {__script__} {cache_path} -p')
+    try:
+        clip = RawSource(cache_path, width, height, self.fps_num, self.fps_den, src_fmt = fmt)
+        if self.width == 0 or self.height == 0:
+            placeholder = clip.BlankClip(width = 1, length = 1)
+            clip = [placeholder, clip].Splice(mismatch = True)
+            clip = clip[1:]
+        return clip
+    except:
+        return self
 
 @Inject
 def Mirror(self: VideoNode, left, right, top, bottom):
