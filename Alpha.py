@@ -54,7 +54,7 @@ def Materialize(self: VideoNode, filename, message = None):
     fmt = 'GRAYS' if self.format.bits_per_sample == 32 else 'Y8'
     def monitor(x, y):
         if x != y:
-            print(f'Frame: {x} / {y}', end = '\r')
+            print(f'Frame: {x}/{y}', end = '\r')
         else:
             print('Evaluation completed')
     if not os.path.exists(cache_path):
