@@ -46,29 +46,30 @@ def _init():
     RegisterPlugin(core.raws, lambda _, FilterName: 'Raw' + FilterName)
 
 @Inject
-def Materialize(self: VideoNode, filename, identifier, message = None):
+def Materialize(self: VideoNode, filename, message = None):
     cache_dir = os.path.dirname(__script__) + '/Cache'
     cache_path = cache_dir + '/' + filename
     width = self.get_frame(0).width
     height = self.get_frame(0).height
-    fmt = 'GRAYS' if self.format.bits_per_sample == 32 else 'GRAY8'
-    cmd = f'vspipe -o {identifier} {__script__} {cache_path} -p'
-    if message is not None:
-        cmd = 'echo ' + message + ' && ' + cmd
-    self.CropAbs(width = width, height = height).set_output(identifier)
+    fmt = 'GRAYS' if self.format.bits_per_sample == 32 else 'Y8'
+    def monitor(x, y):
+        if x != y:
+            print(f'Frame: {x} / {y}', end = '\r')
+        else:
+            print('Evaluation completed')
     if not os.path.exists(cache_path):
+        if message is not None:
+            print(message)
         if not os.path.exists(cache_dir):
             os.mkdir(cache_dir)
-        os.system(cmd)
-    try:
-        clip = RawSource(cache_path, width, height, self.fps_num, self.fps_den, src_fmt = fmt)
-        if self.width == 0 or self.height == 0:
-            placeholder = clip.BlankClip(width = 1, length = 1)
-            clip = [placeholder, clip].Splice(mismatch = True)
-            clip = clip[1:]
-        return clip
-    except:
-        return self
+        with open(cache_path, 'w+') as f:
+            self.CropAbs(width = width, height = height).output(f.buffer, progress_update = monitor)
+    clip = RawSource(cache_path, width, height, self.fps_num, self.fps_den, src_fmt = fmt)
+    if self.width == 0 or self.height == 0:
+        placeholder = clip.BlankClip(width = 1, length = 1)
+        clip = [placeholder, clip].Splice(mismatch = True)
+        clip = clip[1:]
+    return clip
 
 @Inject
 def Mirror(self: VideoNode, left, right, top, bottom):
@@ -186,7 +187,7 @@ def MSupersample(self: VideoNode, pel):
 def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
                 mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, \
                 pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam, \
-                breakdown):
+                breakdown, checkpoints):
     spatial_args = {'block_size': block_size, \
                     'block_step': block_step, 'group_size': group_size, \
                     'bm_range': bm_range, 'bm_step': bm_step}
@@ -195,15 +196,24 @@ def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
     ref = self.BM3DBasic(self, radius = 0, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **spatial_args)
     if breakdown.lower() == 'spatialbasic':
         return ref
+    if 'spatialbasic' in checkpoints:
+        ref = ref.Materialize('ob0.bin', 'Evaluating basic spatial estimation')
     clip = self.BM3DFinal(ref, ref, radius = 0, sigma = sigma2, th_mse = mse2, **spatial_args)
     if breakdown.lower() == 'spatialfinal':
         return clip
+    if 'spatialfinal' in checkpoints:
+        clip = clip.Materialize('ob1.bin', 'Evaluating final spatial estimation')
     clip = clip.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     src = self.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     superclip = clip.MSupersample(pel)
     supersrc = src.MSupersample(pel)
+    if 'supersample' in checkpoints and pel != 1:
+        superclip = superclip.Materialize('ob2.bin', 'Supersampling')
+        supersrc = supersrc.Materialize('ob3.bin', 'Supersampling')
     degrain_super = src.MSuper(pelclip = supersrc, rfilter = 2, pel = pel, **msuper_args)
     vec = clip.ScanMotionVectors(superclip, radius, pel, **temporal_args)
+    if 'motionanalysis' in checkpoints:
+        vec = vec.Materialize('ob4.bin', 'Analyzing motion vector field')
     clip = clip.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args).Crop(64, 64, 64, 64)
     return clip[radius: clip.num_frames - radius]
 
