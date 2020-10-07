@@ -221,7 +221,7 @@ def OysterBasic(self: VideoNode, radius, sigma, sigma2, \
 def OysterDeblocking(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
                   mse, mse2, hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                   sbsize, slocation, crop_left, crop_top, \
-                  breakdown):
+                  breakdown, checkpoints):
     bm3d_args = {'block_size': block_size, 'block_step': block_step, \
                  'group_size': group_size, 'bm_range': bm_range, \
                  'bm_step': bm_step, 'ps_num': ps_num, 'ps_range': ps_range, 'ps_step': ps_step}
@@ -229,12 +229,18 @@ def OysterDeblocking(self: VideoNode, ref, radius, a, s, h, sigma, sigma2, \
     cleansed = ref.NLMeans(radius, a, s, h)
     if breakdown.lower() == 'cleanse':
         return cleansed
+    if 'cleanse' in checkpoints:
+        cleansed = cleansed.Materialize('odbk0.bin', 'Cleansing')
     dif = self.MakeDiff(cleansed)
     ref_dif = dif.BM3DBasic(cleansed, radius = radius, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **bm3d_args)
+    if 'refinebasic' in checkpoints:
+        ref_dif = ref_dif.Materialize('odbk1.bin', 'Refining (basic estimation)')
     ref = cleansed.MergeDiff(ref_dif)
     if breakdown.lower() == 'refinebasic':
         return ref
     dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = sigma2, th_mse = mse2, **bm3d_args)
+    if 'refinefinal' in checkpoints:
+        dif = dif.Materialize('odbk2.bin', 'Refining (final estimation)')
     clean = cleansed.MergeDiff(dif)
     if breakdown.lower() == 'refinefinal':
         return clean
@@ -258,25 +264,35 @@ def OysterDeringing(self: VideoNode, ref, radius, sigma, sigma2, mse, mse2, \
                     hard_thr, block_size, block_step, group_size, bm_range, bm_step, ps_num, ps_range, ps_step, \
                     h_upperbound, h_lowerbound, \
                     refine_sigma, refine_sigma2, refine_mse, refine_mse2, refine_hard_thr, \
-                    sbsize, slocation, breakdown):
+                    sbsize, slocation, breakdown, checkpoints):
     bm3d_args = {'block_size': block_size, 'block_step': block_step, \
                  'group_size': group_size, 'bm_range': bm_range, \
                  'bm_step': bm_step, 'ps_num': ps_num, 'ps_range': ps_range, 'ps_step': ps_step}
     cleansed_basic = ref.BM3DBasic(ref, radius = radius, sigma = sigma, th_mse = mse, hard_thr = hard_thr, **bm3d_args)
     if breakdown.lower() == 'cleansebasic':
         return cleansed_basic
+    if 'cleansebasic' in checkpoints:
+        cleansed_basic = cleansed_basic.Materialize('dr0.bin', 'Cleansing (basic estimation)')
     cleansed = ref.BM3DFinal(cleansed_basic, cleansed_basic, radius = radius, sigma = sigma2, th_mse = mse2, **bm3d_args)
     if breakdown.lower() == 'cleansefinal':
         return cleansed
+    if 'cleansefinal' in checkpoints:
+        cleansed = cleansed.Materialize('dr1.bin', 'Cleansing (final estimation)')
     cleansed = cleansed.RestoreHighFrequencyComponent(self, h_upperbound, h_lowerbound)
     if breakdown.lower() == 'restore':
         return cleansed
+    if 'restore' in checkpoints:
+        cleansed = cleansed.Materialize('dr2.bin', 'Restoring high frequency component')
     dif = self.MakeDiff(cleansed)
     ref_dif = dif.BM3DBasic(cleansed, radius = radius, sigma = refine_sigma, th_mse = refine_mse, hard_thr = refine_hard_thr, **bm3d_args)
+    if 'refinebasic' in checkpoints:
+        ref_dif = ref_dif.Materialize('dr3.bin', 'Refining (basic estimation)')
     ref = cleansed.MergeDiff(ref_dif)
     if breakdown.lower() == 'refinebasic':
         return ref
     dif = dif.BM3DFinal(ref, ref_dif, radius = radius, sigma = refine_sigma2, th_mse = refine_mse2, **bm3d_args)
+    if 'refinefinal' in checkpoints:
+        dif = dif.Materialize('dr4.bin', 'Refining (final estimation)')
     clean = cleansed.MergeDiff(dif)
     if breakdown.lower() == 'refinefinal':
         return clean
@@ -292,19 +308,28 @@ def OysterDecombingSpatial(self: VideoNode, p):
 @Inject
 def OysterDecombing(self: VideoNode, radius, p, p2, \
                     pel, sad, me_sad_upperbound, me_sad_lowerbound, searchparam, \
-                    breakdown):
+                    breakdown, checkpoints):
     prefiltered = self.OysterDecombingSpatial(p)
     if breakdown.lower() == 'prefilter':
         return prefiltered
+    if 'prefilter' in checkpoints:
+        prefiltered = prefiltered.Materialize('odcb0.bin', 'Prefiltering')
     prefiltered = prefiltered.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     clip = self.Mirror(64, 64, 64, 64).TemporalMirror(radius)
     superprefiltered = prefiltered.MSupersample(pel)
     superclip = clip.MSupersample(pel)
+    if 'supersample' in checkpoints and pel != 1:
+        superprefiltered = superprefiltered.Materialize('odcb1.bin', 'Supersampling')
+        superclip = superclip.Materialize('odcb2.bin', 'Supersampling')
     degrain_super = clip.MSuper(pelclip = superclip, rfilter = 2, pel = pel, **msuper_args)
     vec = prefiltered.ScanMotionVectors(superprefiltered, radius, pel, me_sad_upperbound, me_sad_lowerbound, searchparam)
+    if 'motionanalysis' in checkpoints:
+        vec = vec.Materialize('odcb3.bin', 'Analyzing motion vector field')
     clip = clip.MDegrain(degrain_super, vec, thsad = sad, **mdegrain_args).Crop(64, 64, 64, 64)
     clip = clip[radius: clip.num_frames - radius]
     if breakdown.lower() == 'compensate':
         return clip
+    if 'compensate' in checkpoints:
+        clip = clip.Materialize('odcb4.bin', 'Applying motion compensation')
     dif = self.MakeDiff(clip).OysterDecombingSpatial(p2)
     return clip.MergeDiff(dif)
