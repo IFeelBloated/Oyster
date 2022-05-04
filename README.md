@@ -19,7 +19,7 @@ and oyster handles 3 of them, ringing, staircase noise and blockiness
 - [BM3D](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-BM3D)
 - [DFTTest](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-DFTTest)
 - [FMTConv](https://github.com/EleonoreMizo/fmtconv)
-- [MVTools (floating point ver)](https://github.com/IFeelBloated/vapoursynth-mvtools-sf/tree/master)
+- [MVTools (floating point ver, r10+)](https://github.com/IFeelBloated/vapoursynth-mvtools-sf/tree/master)
 
 ## Function List
 - Super
