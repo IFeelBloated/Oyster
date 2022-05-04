@@ -11,7 +11,7 @@ dfttest_args                   = dict(smode=0, sosize=0, tbsize=1, tosize=0, tmo
 
 class get_core:
       def __init__(self):
-          self.core            = vs.get_core()
+          self.core            = vs.core
           self.MSuper          = self.core.mvsf.Super
           self.MAnalyze        = self.core.mvsf.Analyze
           self.MRecalculate    = self.core.mvsf.Recalculate
